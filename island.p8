@@ -1,52 +1,269 @@
 pico-8 cartridge // http://www.pico-8.com
 version 41
 __lua__
+-- island adventure
+-- palo banco games 2023
+-- rocco panella ;)
+
 function _init()
-	p1 = {}
+	--start_gameplay()
+	start_title()
+end
+
+-- gameplay methods
+
+function init_level()
+	local p1 = return_p1()
+	local lvl = return_level()
+	local	cam = return_cam()
+	return p1,lvl,cam
+end
+
+function update_gameplay()
+	update_p1(p1,lvl)	
+end
+
+function draw_gameplay()
+	cls(12)
+	palt(0,false)
+	palt(13,true)
+	update_cam(p1,lvl,cam)
+	map2()
+	draw_p1(p1)
+	palt()
+end
+
+function start_gameplay()
+	p1,lvl,cam = init_level()
+	_update60 = update_gameplay
+	_draw = draw_gameplay
+	_update60() -- call once so graphics work
+end
+
+-- title methods
+function start_title()
+	init_globals()
+	_update60 = update_title
+	_draw = draw_title
+end
+
+function update_title()
+	if btnp(4) or btnp(5) then
+		start_gameplay()
+	end
+end
+
+function draw_title()
+	cls(12)
+	print("island adventure",20,20,0)
+	print("press ❎ or 🅾️",20,40,0)
+end
+
+function init_globals()
+	lives = 3
+	level_ix = 0
+end
+-->8
+-- player
+
+function return_p1()
+	local p1 = {}
 	p1.x = 32
 	p1.y = 64
+	p1.dx = 0
+	p1.dy = 0
+	p1.jumpmax=15
+	p1.jump=0
 	p1.offset = 0
 	p1.offtime_max = 10
 	p1.offtime = 0
 	p1.left = false
+	p1.run=false
+	p1.move=false
+	p1.ground=false
+	return p1
 end
 
-function _update60()
-
+function update_p1(p1,lvl)
 	p1.offtime = (p1.offtime+1)%p1.offtime_max
 	if (p1.offtime == p1.offtime_max-1) p1.offset = 1-p1.offset
 	
-	p1.y += 1
-	if fget(mget(p1.x\8,(p1.y+8)\8),0) then
-		p1.y = 8*(p1.y\8)
+	p1.run=false
+	
+	-- horizontal mvmt
+	if btn(4) then
+		p1.run=true
+		p1.offtime += 1
+		if (p1.offtime == p1.offtime_max-1) p1.offset = 1-p1.offset		
 	end
 	
-	p1.drawx = p1.x-4
-	p1.drawy = p1.y-16
-	p1.sp = 1+2*p1.offset
-	
+	p1.move=false
 	if btn(0) then
-		p1.x += -1
+		p1.dx += -.2
+		p1.move=true
 		p1.left = true
 		p1.offtime += 1
 		if (p1.offtime == p1.offtime_max-1) p1.offset = 1-p1.offset
 	end
 	
 	if btn(1) then
-		p1.x += 1
+		p1.dx += .2
+		p1.move = true
 		p1.left = false
 		p1.offtime += 1
 		if (p1.offtime == p1.offtime_max-1) p1.offset = 1-p1.offset
+	end
+	
+	local maxspeed = 1
+	if (p1.run) maxspeed = 2
+	if abs(p1.dx) > maxspeed then
+		p1.dx -= 0.2*sgn(p1.dx)
+	end
+	
+	if (not p1.move) then
+		p1.dx -= 0.2*sgn(p1.dx)
+		if (abs(p1.dx) <= 0.2) p1.dx=0
+	end
+	
+	p1.x += p1.dx
+	
+	-- vertical mvmt
+	if p1.jump < p1.jumpmax and btn(5) then
+		p1.jump += 1
+		p1.dy = -2.5
+	else
+		p1.dy+= 0.2
+		p1.jump=p1.jumpmax
+	end
+	
+	if btn(5) and p1.jump==0 then
+		p1.dy = -2.5
+		p1.ground=false
+		p1.jump += 1
 	end	
+	
+	while abs(p1.dy) > 2.5 do
+		p1.dy -= sgn(p1.dy)*.1
+	end
+	p1.y += p1.dy
+	
+	
+	-- collisions
+	p1.ground=false
+	while downcheck(p1) do
+		p1.y += -1
+		p1.y = flr(p1.y)
+		p1.ground=true
+		p1.jump=0
+	end
+	
+	while rcheck(p1) or p1.x+8 > lvl.x1*8 do
+		p1.x += -1
+		p1.x = flr(p1.x)
+		p1.dx = min(p1.dx,0)
+	end
+
+	while lcheck(p1) or p1.x < 0 do
+		p1.x += 1
+		p1.x = flr(p1.x)
+		p1.dx = max(p1.dx,0)
+	end		
+	-- drawing
+	p1.drawx = p1.x-4
+	p1.drawy = p1.y-16
+	p1.sp = 1+2*p1.offset
 end
 
-function _draw()
-	cls(12)
-	palt(0,false)
-	palt(13,true)
-	map()
+function downcheck(p)
+	local c1 = fget(mget2((p.x+1)\8,(p.y+7)\8),0)
+	local c2 = fget(mget2((p.x+6)\8,(p.y+7)\8),0)
+	return c1 or c2
+end
+
+function rcheck(p)
+	local c1 = fget(mget2((p.x+8)\8,(p.y+3)\8),0)
+	local c2 = fget(mget2((p.x+8)\8,(p.y-3)\8),0)
+	return c1 or c2
+end
+
+function lcheck(p)
+	local c1 = fget(mget2((p.x-1)\8,(p.y+3)\8),0)
+	local c2 = fget(mget2((p.x-1)\8,(p.y-3)\8),0)
+	return c1 or c2
+end
+
+
+function draw_p1(p1)
 	spr(p1.sp,p1.drawx,p1.drawy,2,3,p1.left)
-	palt()
+end
+-->8
+-- levels
+
+-- map functions to handle wrapping
+function mget2(x,y)
+	yadd = (x\128)*16
+	x = x%128
+	y = y + yadd
+	return mget(x,y)
+end
+
+function mset2(x,y,v)
+	yadd = (x\128)*16
+	x = x%128
+	y = y + yadd
+ mset(x,y,v)
+end
+
+function map2()
+	for i=0,3,1 do
+		map(128*i,16*i, -- map xy
+		    128*8*i,0, -- screen xy
+		    128,16) -- mapdxdy
+	end
+end
+
+function return_level()
+-- use extended memory
+	poke(0x5f56,0x80) -- keep width as 128
+	local level = {}
+	level.x0 = 0
+	level.y0 = 0
+	level.x1 = 128
+	level.y1 = 16
+	--clear mem, must be a bettery way
+	for i=level.x0,level.x1-1,1 do
+		for j=0,15,1 do
+			mset2(i,j,0)
+		end
+	end
+		
+	for i=level.x0,level.x1-1,1 do
+		local starty=14
+		if i%16 > 12 then
+			starty=11
+		end
+		mset2(i,starty,5)
+		for yy=starty+1,15,1 do
+			mset2(i,yy,21)
+		end
+	end
+	return level
+end
+-->8
+-- camera
+
+function return_cam()
+	local cam={}
+	cam.x = 0
+	cam.y = 0
+	return cam
+end
+
+function update_cam(p1,lvl,cam)
+	cam.x = max(lvl.x0*8,p1.x-60)
+	cam.x = min(cam.x,(lvl.x1-16)*8)
+	cam.y = 0
+	camera(cam.x,cam.y)
 end
 __gfx__
 00000000dddddddddddddddddddd00000000dddd00000000dddddddddddddddddddddddddddddddd000000000000000000000000000000000000000000000000
