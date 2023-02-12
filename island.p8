@@ -32,7 +32,7 @@ function draw_gameplay()
 	map2()
 	draw_p1(p1)
 	for f in all(fruits) do
-		spr(f[1],f[2],f[3],2,2)
+		spr(f.ix,f.x,f.y,2,2)
 	end
 	palt()
 end
@@ -53,7 +53,9 @@ end
 
 function update_title()
 	if btnp(4) or btnp(5) then
-		start_gameplay()
+		fade_out()
+		start_map()
+		fade_in()
 	end
 end
 
@@ -66,6 +68,45 @@ end
 function init_globals()
 	lives = 3
 	level_ix = 0
+end
+
+function fade_out()
+	local r = 0
+	while r < 90 do
+		circfill(64,64,r,0)
+		flip()
+		r += 3
+	end
+end
+
+function fade_in()
+	local r = 90
+	while r >= 0 do
+		_draw()
+		circfill(64,64,r,0)
+		flip()
+		r -= 3
+	end
+end
+
+-- map methods
+function start_map()
+--	init_globals()
+	_update60 = update_map
+	_draw = draw_map
+end
+
+function update_map()
+	if btnp(4) or btnp(5) then
+		fade_out()
+		start_gameplay()
+		fade_in()
+	end
+end
+
+function draw_map()
+	cls(12)
+	print(level_ix,1,1,0)
 end
 -->8
 -- player
@@ -119,7 +160,7 @@ function update_p1(p1,lvl)
 	end
 	
 	local maxspeed = 1
-	if (p1.run) maxspeed = 2
+	if (p1.run) maxspeed = 1.5
 	if abs(p1.dx) > maxspeed then
 		p1.dx -= 0.3*sgn(p1.dx)
 	end
@@ -371,7 +412,20 @@ end
 
 fruit_kinds = {}
 -- ix,      name,health,points
-fruit_kinds[9]={"apple",2,20} 
+fruit_kinds[9]={"apple",2,20}
+fruit_kinds[7]={"flag",0,1000} 
+
+
+function make_fruit(ix,x,y)
+ local f = {}
+	f.ix = ix
+	f.name = fruit_kinds[ix][1]
+	f.health = fruit_kinds[ix][2]
+	f.points = fruit_kinds[ix][3]
+	f.x = x
+	f.y = y
+	return f 
+end
 
 
 function return_fruits(lvl)
@@ -385,9 +439,17 @@ function return_fruits(lvl)
 			end
 			x *= 8
 			y *= 8
-			add(fruits,{9,x,y})
+			add(fruits,make_fruit(9,x,y))
 		end
 	end
+	x=126
+	y=14
+	while mget2(x,y+1)>0 do
+		y -= 1
+	end
+	y *= 8
+	x *= 8
+	add(fruits,make_fruit(7,x,y))
 	return fruits
 end
 __gfx__
