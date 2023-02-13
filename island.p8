@@ -21,7 +21,28 @@ function init_level()
 end
 
 function update_gameplay()
-	update_p1(p1,lvl)	
+	update_p1(p1,lvl)
+	for f in all(fruits) do
+		if collide_p1(p1,f,8,16) then
+			if f.name == "flag" then
+				level_end()
+				return
+			else
+				del(fruits,f)
+			end
+		end
+	end
+end
+
+function level_end()
+	sfx(0)
+	level_ix += 1
+	for _=1,30,1 do
+		flip()
+	end
+--		fade_out()
+		start_map()
+--		fade_in()
 end
 
 function draw_gameplay()
@@ -31,6 +52,8 @@ function draw_gameplay()
 	update_cam(p1,lvl,cam)
 	map2()
 	draw_p1(p1)
+	local flicker = flr(t()*30)%2
+	pset(p1.x,p1.y,7*flicker)
 	for f in all(fruits) do
 		spr(f.ix,f.x,f.y,2,2)
 	end
@@ -42,6 +65,7 @@ function start_gameplay()
 	_update60 = update_gameplay
 	_draw = draw_gameplay
 	_update60() -- call once so graphics work
+	menuitem(1,"skip level",level_end)
 end
 
 -- title methods
@@ -49,13 +73,18 @@ function start_title()
 	init_globals()
 	_update60 = update_title
 	_draw = draw_title
+	game_start=false
 end
 
 function update_title()
 	if btnp(4) or btnp(5) then
-		fade_out()
+--		fade_out()
 		start_map()
+--		fade_in()
+	end
+	if not game_start then
 		fade_in()
+		game_start=true
 	end
 end
 
@@ -67,10 +96,11 @@ end
 
 function init_globals()
 	lives = 3
-	level_ix = 0
+	level_ix = 1
 end
 
 function fade_out()
+	camera()
 	local r = 0
 	while r < 90 do
 		circfill(64,64,r,0)
@@ -80,6 +110,7 @@ function fade_out()
 end
 
 function fade_in()
+	camera()
 	local r = 90
 	while r >= 0 do
 		_draw()
@@ -92,8 +123,10 @@ end
 -- map methods
 function start_map()
 --	init_globals()
+	fade_out()
 	_update60 = update_map
 	_draw = draw_map
+	fade_in()
 end
 
 function update_map()
@@ -108,6 +141,8 @@ function draw_map()
 	cls(12)
 	print(level_ix,1,1,0)
 end
+
+
 -->8
 -- player
 
@@ -212,6 +247,7 @@ function update_p1(p1,lvl)
 		p1.x = flr(p1.x)
 		p1.dx = max(p1.dx,0)
 	end		
+	
 	-- drawing
 	p1.drawx = p1.x-4
 	p1.drawy = p1.y-16
@@ -278,6 +314,21 @@ end
 
 function draw_p1(p1)
 	spr(p1.sp,p1.drawx,p1.drawy,2,3,p1.left)
+end
+
+-- collision methods
+
+function collide(a1,a2,r)
+	local r = r or 8
+	return abs(a1.x-a2.x)<r and abs(a1.y-a2.y)<r
+end
+
+function collide_p1(p,a,rx,ry)
+	local rx = rx or 16
+	local ry = ry or 24
+	local px = p.x-4
+	local py = p.y-16
+	return abs(px-a.x)<rx and abs(py-a.y)<ry
 end
 -->8
 -- levels
@@ -537,3 +588,5 @@ __map__
 0505050505050505050505050505050500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 1515151515151515151515151515151500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 1515151515151515151515151515151500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+__sfx__
+01080000270561f056220561805622056180561d05618056270561f05622056180560000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
