@@ -5,6 +5,26 @@ __lua__
 -- palo banco games 2023
 -- rocco panella ;)
 
+reqs=[[
+must have:
+- energy system
+- lives
+- death
+- status bar
+- enemies
+- getting stunned
+- hammers
+- beating the game
+- some level variation
+- falling into pits
+
+nice to have:
+- powerups
+- end of level gimmick
+- level generation 
+- better player sprite
+]]
+
 function _init()
 	--start_gameplay()
 	start_title()
@@ -17,7 +37,14 @@ function init_level()
 	local lvl = return_level()
 	local	cam = return_cam()
 	local fruits = return_fruits(lvl)
+	reset_globals()
 	return p1,lvl,cam,fruits
+end
+
+function reset_globals()
+	-- these are globals that get
+	-- reset every level or life
+	energy = 100
 end
 
 function update_gameplay()
@@ -57,7 +84,31 @@ function draw_gameplay()
 	for f in all(fruits) do
 		spr(f.ix,f.x,f.y,2,2)
 	end
+	-- overlay
+	camera()
+	draw_status()
 	palt()
+end
+
+function draw_status()
+	rectfill(0,128-status_height,127,127,0)
+	rect(0,128-status_height,127,127,6)
+	spr(49,3,118)
+	offprint(lives,14,120,7,2)
+	local bars = energy\5
+	local x = 28
+	for i=1,bars,1 do
+		line(x+i*3,118,x+i*3,125,7)
+		line(x+i*3-1,119,x+i*3-1,124,2)
+	end
+	local scorewidth=6
+	local zeropad = scorewidth - #(""..score)
+	local scorestr = ""
+	for i=1,zeropad,1 do
+		scorestr = scorestr.."0"
+	end
+	scorestr = scorestr..score
+	offprint(scorestr,100,120,7,2)
 end
 
 function start_gameplay()
@@ -97,6 +148,9 @@ end
 function init_globals()
 	lives = 3
 	level_ix = 1
+	status_height = 12
+	score = 0
+	reset_globals()
 end
 
 function fade_out()
@@ -436,24 +490,42 @@ end
 function update_cam(p1,lvl,cam)
 	cam.x = max(lvl.x0*8,p1.x-60)
 	cam.x = min(cam.x,(lvl.x1-16)*8)
-	cam.y = 0
+	cam.y = status_height
 	camera(cam.x,cam.y)
 end
 -->8
 -- utils
 
-function ospr(ix,x,y)
-	pal({0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
+function ospr(ix,x,y,co)
+	--pal({0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
+	for ii=0,15,1 do
+		pal(ii,co)
+	end
+	pal(13,13)
 	for xx=-1,1,1 do
 		for yy =-1,1,1 do
 			spr(ix,x+xx,y+yy)
 		end
 	end
 	pal()
-	spr(ix,x+xx,y+yy)
+	palt(0,false)
+	palt(13,true)
+	spr(ix,x,y)
 end
 
+function oprint(str,x,y,c,co)
+	for xx=-1,1,1 do
+		for yy =-1,1,1 do
+			print(str,x,y,co)
+		end
+	end
+	print(str,x,y,c)
+end
 
+function offprint(str,x,y,c,co)
+	print(str,x-1,y-1,co)
+	print(str,x,y,c)
+end
 -->8
 -- map
 
