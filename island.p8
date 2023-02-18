@@ -49,12 +49,16 @@ end
 
 function update_gameplay()
 	update_p1(p1,lvl)
+	energy -= denergy
 	for f in all(fruits) do
 		if collide_p1(p1,f,8,16) then
 			if f.name == "flag" then
 				level_end()
 				return
 			else
+				score += f.points
+				energy += f.health
+				energy = min(energy,100)
 				del(fruits,f)
 			end
 		end
@@ -150,6 +154,7 @@ function init_globals()
 	level_ix = 1
 	status_height = 12
 	score = 0
+	denergy = 5/60
 	reset_globals()
 end
 
@@ -535,7 +540,7 @@ end
 
 fruit_kinds = {}
 -- ix,      name,health,points
-fruit_kinds[9]={"apple",2,20}
+fruit_kinds[9]={"apple",5,20}
 fruit_kinds[7]={"flag",0,1000} 
 
 
