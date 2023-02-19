@@ -50,11 +50,22 @@ end
 function update_gameplay()
 	update_p1(p1,lvl)
 	energy -= denergy
+	check_fruits()
+	if energy <= 0 then
+		die()
+	end
+end
+
+function check_fruits()
 	for f in all(fruits) do
 		if collide_p1(p1,f,8,16) then
 			if f.name == "flag" then
 				level_end()
 				return
+			elseif f.name=="hammer" then
+				score += f.points
+				hammer=true
+				del(fruits,f)
 			else
 				score += f.points
 				energy += f.health
@@ -65,15 +76,29 @@ function update_gameplay()
 	end
 end
 
+function die()
+	p1.ud = true
+	for i=1,15,1 do
+		_draw()
+		flip()
+	end
+	local dy= -2.5
+	for i=1,35,1 do
+		p1.drawy += dy
+		dy += .3
+		_draw()
+		flip()
+	end
+	start_gameplay()
+end
+
 function level_end()
 	sfx(0)
 	level_ix += 1
 	for _=1,30,1 do
 		flip()
 	end
---		fade_out()
 		start_map()
---		fade_in()
 end
 
 function draw_gameplay()
@@ -116,11 +141,13 @@ function draw_status()
 end
 
 function start_gameplay()
+	fade_out()
 	p1,lvl,cam,fruits = init_level()
 	_update60 = update_gameplay
 	_draw = draw_gameplay
 	_update60() -- call once so graphics work
 	menuitem(1,"skip level",level_end)
+	fade_in()
 end
 
 -- title methods
@@ -155,6 +182,7 @@ function init_globals()
 	status_height = 12
 	score = 0
 	denergy = 5/60
+	hammer = false
 	reset_globals()
 end
 
@@ -190,9 +218,9 @@ end
 
 function update_map()
 	if btnp(4) or btnp(5) then
-		fade_out()
+		--fade_out()
 		start_gameplay()
-		fade_in()
+		--fade_in()
 	end
 end
 
@@ -217,6 +245,7 @@ function return_p1()
 	p1.offtime_max = 10
 	p1.offtime = 0
 	p1.left = false
+	p1.ud = false --upsidedown
 	p1.run=false
 	p1.move=false
 	p1.ground=false
@@ -235,6 +264,7 @@ function update_p1(p1,lvl)
 		p1.offtime += 1
 		if (p1.offtime == p1.offtime_max-1) p1.offset = 1-p1.offset		
 	end
+	
 	
 	p1.move=false
 	if btn(0) then
@@ -372,7 +402,7 @@ end
 
 
 function draw_p1(p1)
-	spr(p1.sp,p1.drawx,p1.drawy,2,3,p1.left)
+	spr(p1.sp,p1.drawx,p1.drawy,2,3,p1.left,p1.ud)
 end
 
 -- collision methods
@@ -540,8 +570,9 @@ end
 
 fruit_kinds = {}
 -- ix,      name,health,points
-fruit_kinds[9]={"apple",5,20}
-fruit_kinds[7]={"flag",0,1000} 
+fruit_kinds[9]={"apple",10,20}
+fruit_kinds[7]={"flag",0,1000}
+fruit_kinds[11]={"hammer",0,2000} 
 
 
 function make_fruit(ix,x,y)
@@ -581,22 +612,22 @@ function return_fruits(lvl)
 	return fruits
 end
 __gfx__
-00000000dddddddddddddddddddd00000000dddd0000000000000000dddddddddddddddddddddddddddddddd0000000000000000000000000000000000000000
-00000000dddd00000000dddddd00444444440ddd3333333300000000dddddddddddd0dddddddddddd0dddddd0000000000000000000000000000000000000000
-00700700dd00444444440dddd0444444444440ddbbb3bbb300000000ddd000ddddd070dddddddddd0ddddddd0000000000000000000000000000000000000000
-00077000d0444444444440ddd0444ff444ff440dbb3bbb3b00000000ddd07700dd0770dddddd000d0d00dddd0000000000000000000000000000000000000000
-00077000d0444ff444ff440d0444ff0444f0440db3bbb3bb00000000ddd07777007770ddddd0888000880ddd0000000000000000000000000000000000000000
-007007000444ff0444f0440d044fff0f4ff040ddbbbbbbbb00000000ddd07777777770dddd087888088780dd0000000000000000000000000000000000000000
-00000000044fff0f4ff040dd044fff0ffff0f0ddbbbbbbbb00000000ddd07777777770ddd08788888888780d0000000000000000000000000000000000000000
-00000000044fff0ffff0f0dd0444fffffffff0ddbbbbbbbb00000000ddd07777777700ddd08888888888880d0000000000000000000000000000000000000000
-000000000444fffffffff0ddd0444444444440ddbbbbbbbbbbbbbbb3ddd000777770ddddd08888888888880d0000000000000000000000000000000000000000
-00000000d0444444444440dddd0444f00ff40dddbbbbbbbbbbbbbbbbddd0dd00770dddddd08888888888880d0000000000000000000000000000000000000000
-00000000dd0444f00ff40dddddd044444440ddddbbb3bbb3bbb3bbb3ddd0dddd00ddddddd08888888888880d0000000000000000000000000000000000000000
-00000000ddd044444440dddddddd0ff4400dddddbb3bbb3bbb3bbb3bddd0dddddddddddddd088888888880dd0000000000000000000000000000000000000000
-00000000dddd0ff4400ddddddd00fffffff0ddddb3bbb3bbb3bbb3bbddd0ddddddddddddddd0888888880ddd0000000000000000000000000000000000000000
-00000000dd00fffffff0ddddd0ffffffffff0dddbbbbbbbbbbbbbbbbddd0dddddddddddddddd08800880dddd0000000000000000000000000000000000000000
-00000000d0ffffffffff0ddd0fff00ffffff0dddbbbbbbbbbbbbbbbbddd0ddddddddddddddddd00dd00ddddd0000000000000000000000000000000000000000
-000000000fff00ffffff0ddd0fffff0fffff00ddbbbbbbbbbbbbbbbbddd0dddddddddddddddddddddddddddd0000000000000000000000000000000000000000
+00000000dddddddddddddddddddd00000000dddd0000000000000000dddddddddddddddddddddddddddddddddddddddddddddddd000000000000000000000000
+00000000dddd00000000dddddd00444444440ddd3333333300000000dddddddddddd0dddddddddddd0dddddddddddddd00dddddd000000000000000000000000
+00700700dd00444444440dddd0444444444440ddbbb3bbb300000000ddd000ddddd070dddddddddd0dddddddddddddd0640ddddd000000000000000000000000
+00077000d0444444444440ddd0444ff444ff440dbb3bbb3b00000000ddd07700dd0770dddddd000d0d00dddddddddd066460dddd000000000000000000000000
+00077000d0444ff444ff440d0444ff0444f0440db3bbb3bb00000000ddd07777007770ddddd0888000880dddddddd06664660ddd000000000000000000000000
+007007000444ff0444f0440d044fff0f4ff040ddbbbbbbbb00000000ddd07777777770dddd087888088780ddddddd066646660dd000000000000000000000000
+00000000044fff0f4ff040dd044fff0ffff0f0ddbbbbbbbb00000000ddd07777777770ddd08788888888780ddddddd044444440d000000000000000000000000
+00000000044fff0ffff0f0dd0444fffffffff0ddbbbbbbbb00000000ddd07777777700ddd08888888888880dddddddd06466660d000000000000000000000000
+000000000444fffffffff0ddd0444444444440ddbbbbbbbbbbbbbbb3ddd000777770ddddd08888888888880ddddddd04046660dd000000000000000000000000
+00000000d0444444444440dddd0444f00ff40dddbbbbbbbbbbbbbbbbddd0dd00770dddddd08888888888880dddddd040d0660ddd000000000000000000000000
+00000000dd0444f00ff40dddddd044444440ddddbbb3bbb3bbb3bbb3ddd0dddd00ddddddd08888888888880dddd0040ddd00dddd000000000000000000000000
+00000000ddd044444440dddddddd0ff4400dddddbb3bbb3bbb3bbb3bddd0dddddddddddddd088888888880dddd0660dddddddddd000000000000000000000000
+00000000dddd0ff4400ddddddd00fffffff0ddddb3bbb3bbb3bbb3bbddd0ddddddddddddddd0888888880ddddd0660dddddddddd000000000000000000000000
+00000000dd00fffffff0ddddd0ffffffffff0dddbbbbbbbbbbbbbbbbddd0dddddddddddddddd08800880ddddddd00ddddddddddd000000000000000000000000
+00000000d0ffffffffff0ddd0fff00ffffff0dddbbbbbbbbbbbbbbbbddd0ddddddddddddddddd00dd00ddddddddddddddddddddd000000000000000000000000
+000000000fff00ffffff0ddd0fffff0fffff00ddbbbbbbbbbbbbbbbbddd0dddddddddddddddddddddddddddddddddddddddddddd000000000000000000000000
 000000000fffff0fffff00dd0ffff0fff0ff0f0dddddddd00ddddddd000000000000000000000000000000000000000000000000000000000000000000000000
 000000000ffff0fff0ff0f0dd0000000000000dddddddd0330dddddd000000000000000000000000000000000000000000000000000000000000000000000000
 00000000d0000000000000dd044444444444440dddddd03bb30ddddd000000000000000000000000000000000000000000000000000000000000000000000000
