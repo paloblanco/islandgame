@@ -5,6 +5,9 @@ __lua__
 -- palo banco games 2023
 -- rocco panella ;)
 
+-- no repeater
+poke(0x5f5c,255)
+
 reqs=[[
 must have:
 - energy system
@@ -26,9 +29,20 @@ nice to have:
 - better player sprite
 ]]
 
+function starter_up()
+	if time_start==1 then
+		start_title()
+		return
+	else
+		time_start += 1
+	end
+end
+
 function _init()
+	time_start=0
 	--start_gameplay()
-	start_title()
+	_update60 = starter_up
+	_draw = function() cls() end
 end
 
 -- gameplay methods
@@ -51,6 +65,9 @@ end
 
 function update_gameplay()
 	update_p1(p1,lvl)
+	for b in all(bads) do
+		b:update()
+	end
 	energy -= denergy
 	check_fruits()
 	check_bads()
@@ -121,6 +138,7 @@ function die()
 		start_gameplay()
 	else
 		start_gameover()
+		return
 	end
 end
 
@@ -130,7 +148,11 @@ function level_end()
 	for _=1,30,1 do
 		flip()
 	end
+	if level_ix < 9 then
 		start_map()
+	else
+		start_gamewin()
+	end
 end
 
 function draw_gameplay()
@@ -178,6 +200,7 @@ end
 function start_gameplay()
 	fade_out()
 	p1,lvl,cam,fruits,bads = init_level()
+	hammers = {}
 	_update60 = update_gameplay
 	_draw = draw_gameplay
 	_update60() -- call once so graphics work
@@ -190,18 +213,13 @@ function start_title()
 	init_globals()
 	_update60 = update_title
 	_draw = draw_title
-	game_start=false
+	--game_start=false
+	fade_in()	
 end
 
 function update_title()
 	if btnp(4) or btnp(5) then
---		fade_out()
 		start_map()
---		fade_in()
-	end
-	if not game_start then
-		fade_in()
-		game_start=true
 	end
 end
 
@@ -213,7 +231,7 @@ end
 
 function init_globals()
 	lives = 0
-	level_ix = 1
+	level_ix = 8
 	status_height = 12
 	score = 0
 	denergy = 5/60
@@ -253,9 +271,7 @@ end
 
 function update_map()
 	if btnp(4) or btnp(5) then
-		--fade_out()
 		start_gameplay()
-		--fade_in()
 	end
 end
 
@@ -265,9 +281,8 @@ function draw_map()
 end
 
 
--- gameovrt methods
+-- gameover methods
 function start_gameover()
---	init_globals()
 	fade_out()
 	_update60 = update_gameover
 	_draw = draw_gameover
@@ -278,6 +293,7 @@ function update_gameover()
 	if btnp(4) or btnp(5) then
 		fade_out()
 		start_title()
+		return
 	end
 end
 
@@ -285,6 +301,28 @@ function draw_gameover()
 	map()
 	cls(1)
 	cprint("game over",60,0,6)
+end
+
+-- gamewin methods
+function start_gamewin()
+	fade_out()
+	_update60 = update_gamewin
+	_draw = draw_gamewin
+	fade_in()
+end
+
+function update_gamewin()
+	if btnp(4) or btnp(5) then
+		fade_out()
+		start_title()
+		return
+	end
+end
+
+function draw_gamewin()
+	map()
+	cls(14)
+	cprint("you win!",60,0,9)
 end
 -->8
 -- player
@@ -353,7 +391,11 @@ function update_p1(p1,lvl)
 	p1.x += p1.dx
 	
 	-- vertical mvmt
-	if p1.jump < p1.jumpmax and btn(5) then
+	if btnp(5) and p1.jump==0 and p1.ground then
+		p1.dy = -2.5
+		p1.ground=false
+		p1.jump += 1
+	elseif p1.jump < p1.jumpmax and btn(5) and not p1.ground then
 		p1.jump += 1
 		p1.dy = -2.5
 	else
@@ -361,12 +403,7 @@ function update_p1(p1,lvl)
 		p1.jump=p1.jumpmax
 	end
 	
-	if btn(5) and p1.jump==0 and p1.ground then
-		p1.dy = -2.5
-		p1.ground=false
-		p1.jump += 1
-	end	
-	
+		
 	while abs(p1.dy) > 2.5 do
 		p1.dy -= sgn(p1.dy)*.1
 	end
@@ -664,12 +701,17 @@ function return_fruits(lvl)
 	end
 	x=126
 	y=14
+	-- flag
 	while mget2(x,y+1)>0 do
 		y -= 1
 	end
 	y *= 8
 	x *= 8
 	add(fruits,make_fruit(7,x,y))
+	--hammer
+	x=96
+	y=32
+	add(fruits,make_fruit(11,x,y))
 	return fruits
 end
 -->8
@@ -714,8 +756,6 @@ bad_kinds = {}
 -- ix,      name,health,damage,points,updater
 bad_kinds[39]={"snail",1,20,100,update_snail}
 snail=39
---bad_kinds[7]={"flag",0,1000}
---bad_kinds[11]={"hammer",0,2000} 
 
 
 __gfx__
