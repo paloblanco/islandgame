@@ -8,6 +8,7 @@ __lua__
 reqs=[[
 must have:
 - energy system
+- baddies
 - lives
 - death
 - status bar
@@ -37,8 +38,9 @@ function init_level()
 	local lvl = return_level()
 	local	cam = return_cam()
 	local fruits = return_fruits(lvl)
+	local bads = return_bads(lvl)
 	reset_globals()
-	return p1,lvl,cam,fruits
+	return p1,lvl,cam,fruits,bads
 end
 
 function reset_globals()
@@ -51,6 +53,7 @@ function update_gameplay()
 	update_p1(p1,lvl)
 	energy -= denergy
 	check_fruits()
+	check_bads()
 	if energy <= 0 then
 		die()
 	end
@@ -58,7 +61,7 @@ end
 
 function check_fruits()
 	for f in all(fruits) do
-		if collide_p1(p1,f,8,16) then
+		if collide_p1(p1,f,12,16) then
 			if f.name == "flag" then
 				level_end()
 				return
@@ -76,6 +79,30 @@ function check_fruits()
 	end
 end
 
+function check_bads()
+	for b in all(bads) do
+		if collide_p1(p1,b,8,16) then
+			energy -= b.damage
+			if energy <= 0 then
+				die()
+			else
+				hurt()
+				del(bads,b)
+			end
+		end
+	end
+end
+
+function hurt()
+	for i=1,5,1 do
+		flip()
+	end
+	p1.ground = false
+	p1.dy = -2
+	p1.dx = -4
+	if (p1.left) p1.dx = 4 
+end
+
 function die()
 	p1.ud = true
 	for i=1,15,1 do
@@ -89,7 +116,12 @@ function die()
 		_draw()
 		flip()
 	end
-	start_gameplay()
+	lives += -1
+	if lives >= 0 then
+		start_gameplay()
+	else
+		start_gameover()
+	end
 end
 
 function level_end()
@@ -112,6 +144,9 @@ function draw_gameplay()
 	pset(p1.x,p1.y,7*flicker)
 	for f in all(fruits) do
 		spr(f.ix,f.x,f.y,2,2)
+	end
+	for b in all(bads) do
+		spr(b.ix,b.x,b.y,2,2)
 	end
 	-- overlay
 	camera()
@@ -142,7 +177,7 @@ end
 
 function start_gameplay()
 	fade_out()
-	p1,lvl,cam,fruits = init_level()
+	p1,lvl,cam,fruits,bads = init_level()
 	_update60 = update_gameplay
 	_draw = draw_gameplay
 	_update60() -- call once so graphics work
@@ -172,12 +207,12 @@ end
 
 function draw_title()
 	cls(12)
-	print("island adventure",20,20,0)
-	print("press ❎ or 🅾️",20,40,0)
+	cprint("island adventure",20,0,9)
+	cprint("press x, c, or z",40,0,9)
 end
 
 function init_globals()
-	lives = 3
+	lives = 0
 	level_ix = 1
 	status_height = 12
 	score = 0
@@ -230,6 +265,27 @@ function draw_map()
 end
 
 
+-- gameovrt methods
+function start_gameover()
+--	init_globals()
+	fade_out()
+	_update60 = update_gameover
+	_draw = draw_gameover
+	fade_in()
+end
+
+function update_gameover()
+	if btnp(4) or btnp(5) then
+		fade_out()
+		start_title()
+	end
+end
+
+function draw_gameover()
+	map()
+	cls(1)
+	cprint("game over",60,0,6)
+end
 -->8
 -- player
 
@@ -305,7 +361,7 @@ function update_p1(p1,lvl)
 		p1.jump=p1.jumpmax
 	end
 	
-	if btn(5) and p1.jump==0 then
+	if btn(5) and p1.jump==0 and p1.ground then
 		p1.dy = -2.5
 		p1.ground=false
 		p1.jump += 1
@@ -551,7 +607,7 @@ end
 function oprint(str,x,y,c,co)
 	for xx=-1,1,1 do
 		for yy =-1,1,1 do
-			print(str,x,y,co)
+			print(str,x+xx,y+yy,co)
 		end
 	end
 	print(str,x,y,c)
@@ -560,6 +616,11 @@ end
 function offprint(str,x,y,c,co)
 	print(str,x-1,y-1,co)
 	print(str,x,y,c)
+end
+
+function cprint(str,y,c,co)
+	local x = 64 - #str*2
+	oprint(str,x,y,c,co)
 end
 -->8
 -- map
@@ -611,6 +672,52 @@ function return_fruits(lvl)
 	add(fruits,make_fruit(7,x,y))
 	return fruits
 end
+-->8
+-- bads
+
+function update_snail()
+end
+
+function make_bad(ix,x,y)
+ local b = {}
+	b.ix = ix
+	b.name = bad_kinds[ix][1]
+	b.health = bad_kinds[ix][2]
+	b.damage = bad_kinds[ix][3]
+	b.points = bad_kinds[ix][4]
+	b.update = bad_kinds[ix][5]
+
+	b.x = x
+	b.y = y
+	return b 
+end
+
+function return_bads(lvl)
+	local x,y
+	local bads={}
+	for x=lvl.x0,lvl.x1-1,1 do
+		if rnd() < .04 then
+			y = 14
+			while mget2(x,y+1)>0 do
+				y -= 1
+			end
+			x *= 8
+			y *= 8
+			add(bads,make_bad(snail,x,y))
+		end
+	end
+	return bads
+end
+
+
+bad_kinds = {}
+-- ix,      name,health,damage,points,updater
+bad_kinds[39]={"snail",1,20,100,update_snail}
+snail=39
+--bad_kinds[7]={"flag",0,1000}
+--bad_kinds[11]={"hammer",0,2000} 
+
+
 __gfx__
 00000000dddddddddddddddddddd00000000dddd0000000000000000dddddddddddddddddddddddddddddddddddddddddddddddd000000000000000000000000
 00000000dddd00000000dddddd00444444440ddd3333333300000000dddddddddddd0dddddddddddd0dddddddddddddd00dddddd000000000000000000000000
@@ -628,22 +735,22 @@ __gfx__
 00000000dd00fffffff0ddddd0ffffffffff0dddbbbbbbbbbbbbbbbbddd0dddddddddddddddd08800880ddddddd00ddddddddddd000000000000000000000000
 00000000d0ffffffffff0ddd0fff00ffffff0dddbbbbbbbbbbbbbbbbddd0ddddddddddddddddd00dd00ddddddddddddddddddddd000000000000000000000000
 000000000fff00ffffff0ddd0fffff0fffff00ddbbbbbbbbbbbbbbbbddd0dddddddddddddddddddddddddddddddddddddddddddd000000000000000000000000
-000000000fffff0fffff00dd0ffff0fff0ff0f0dddddddd00ddddddd000000000000000000000000000000000000000000000000000000000000000000000000
-000000000ffff0fff0ff0f0dd0000000000000dddddddd0330dddddd000000000000000000000000000000000000000000000000000000000000000000000000
-00000000d0000000000000dd044444444444440dddddd03bb30ddddd000000000000000000000000000000000000000000000000000000000000000000000000
-00000000044444444444440d040004440000040ddddd03bbbb30dddd000000000000000000000000000000000000000000000000000000000000000000000000
-00000000040004440000040d00fff000d0fff0ddddd03bbbbbb30ddd000000000000000000000000000000000000000000000000000000000000000000000000
-0000000000fff000d0fff0dddd0000ddd0fff0dddd03bbbbbbbb30dd000000000000000000000000000000000000000000000000000000000000000000000000
-00000000d0ffff0ddd000dddddddddddd0ffff0dd03bbbbbbbbbb30d000000000000000000000000000000000000000000000000000000000000000000000000
-00000000dd00000ddddddddddddddddddd00000d03bbbbbbbbbbbb30000000000000000000000000000000000000000000000000000000000000000000000000
-00000000d444444ddddddddddddddddddddddddd3bbbbbbb00000000000000000000000000000000000000000000000000000000000000000000000000000000
-000000004f0ff0f4ddddddddddddddddddddddddbbbbbbbb33333333000000000000000000000000000000000000000000000000000000000000000000000000
-000000004f0ff0f4ddddddddddddddddddddddddbbb3bbb3bbb3bbb3000000000000000000000000000000000000000000000000000000000000000000000000
-00000000d444444dddddddddddddddddddddddddbb3bbb3bbb3bbb3b000000000000000000000000000000000000000000000000000000000000000000000000
-00000000ffffffffddddddddddddddddddddddddb3bbb3bbb3bbb3bb000000000000000000000000000000000000000000000000000000000000000000000000
-00000000dffffffdddddddddddddddddddddddddbbbbbbbbbbbbbbbb000000000000000000000000000000000000000000000000000000000000000000000000
-00000000d444444dddddddddddddddddddddddddbbbbbbbbbbbbbbbb000000000000000000000000000000000000000000000000000000000000000000000000
-00000000ddfddfddddddddddddddddddddddddddbbbbbbbbbbbbbbbb000000000000000000000000000000000000000000000000000000000000000000000000
+000000000fffff0fffff00dd0ffff0fff0ff0f0dddddddd00ddddddddddddddddddddddd00000000000000000000000000000000000000000000000000000000
+000000000ffff0fff0ff0f0dd0000000000000dddddddd0330ddddddddddddd00000dddd00000000000000000000000000000000000000000000000000000000
+00000000d0000000000000dd044444444444440dddddd03bb30ddddddddddd0777770ddd00000000000000000000000000000000000000000000000000000000
+00000000044444444444440d040004440000040ddddd03bbbb30ddddddddd077777770dd00000000000000000000000000000000000000000000000000000000
+00000000040004440000040d00fff000d0fff0ddddd03bbbbbb30ddddddd07770077770d00000000000000000000000000000000000000000000000000000000
+0000000000fff000d0fff0dddd0000ddd0fff0dddd03bbbbbbbb30ddddd077707707777000000000000000000000000000000000000000000000000000000000
+00000000d0ffff0ddd000dddddddddddd0ffff0dd03bbbbbbbbbb30dddd077077770777000000000000000000000000000000000000000000000000000000000
+00000000dd00000ddddddddddddddddddd00000d03bbbbbbbbbbbb30ddd077077070777000000000000000000000000000000000000000000000000000000000
+00000000d444444ddddddddddddddddddddddddd3bbbbbbb00000000d00070007707777000000000000000000000000000000000000000000000000000000000
+000000004f0ff0f4ddddddddddddddddddddddddbbbbbbbb333333330eee0eee0777777000000000000000000000000000000000000000000000000000000000
+000000004f0ff0f4ddddddddddddddddddddddddbbb3bbb3bbb3bbb3070707070777770d00000000000000000000000000000000000000000000000000000000
+00000000d444444dddddddddddddddddddddddddbb3bbb3bbb3bbb3b07770777007770dd00000000000000000000000000000000000000000000000000000000
+00000000ffffffffddddddddddddddddddddddddb3bbb3bbb3bbb3bbd000e00077070ddd00000000000000000000000000000000000000000000000000000000
+00000000dffffffdddddddddddddddddddddddddbbbbbbbbbbbbbbbbddd0eee00000dddd00000000000000000000000000000000000000000000000000000000
+00000000d444444dddddddddddddddddddddddddbbbbbbbbbbbbbbbbdd0eeeeeeeee0ddd00000000000000000000000000000000000000000000000000000000
+00000000ddfddfddddddddddddddddddddddddddbbbbbbbbbbbbbbbbd0000000000000dd00000000000000000000000000000000000000000000000000000000
 00000000dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd00000000000000000000000000000000000000000000000000000000
 00000000dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd00000000000000000000000000000000000000000000000000000000
 00000000dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd00000000000000000000000000000000000000000000000000000000
