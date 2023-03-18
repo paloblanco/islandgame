@@ -158,13 +158,13 @@ function draw_gameplay()
 	--local flicker = flr(t()*30)%2
 	--pset(p1.x,p1.y,7*flicker)
 	for f in all(fruits) do
-		spr(f.ix,f.x,f.y,2,2)
+		spr(f.ix,f.x-f.w\2,f.y-f.h\2,2,2)
 	end
 	for b in all(bads) do
-		spr(b.ix,b.x,b.y,2,2)
+		spr(b.ix,b.x-b.w\2,b.y-b.h\2,2,2)
 	end
 	for h in all(hammers) do
-		spr(11,h.x,h.y,2,2)
+		spr(11,h.x-h.w\2,h.y-h.h\2,2,2)
 	end
 	-- overlay
 	camera()
@@ -343,6 +343,8 @@ function return_p1()
 	p1.run=false
 	p1.move=false
 	p1.ground=false
+	p1.w = 16
+	p1.h = 24
 	return p1
 end
 
@@ -439,15 +441,15 @@ function update_p1(p1,lvl)
 	end		
 	
 	-- drawing
-	p1.drawx = p1.x-4
-	p1.drawy = p1.y-16
+	p1.drawx = p1.x-p1.w\2
+	p1.drawy = p1.y-p1.h\2
 	p1.sp = 1+2*p1.offset
 end
 
 function downcheck(p)
 	-- solid ground
-	local c1 = fget(mget2((p.x+1)\8,(p.y+7)\8),0)
-	local c2 = fget(mget2((p.x+6)\8,(p.y+7)\8),0)
+	local c1 = fget(mget2((p.x-3)\8,(p.y-1+p.h\2)\8),0)
+	local c2 = fget(mget2((p.x+3)\8,(p.y-1+p.h\2)\8),0)
 	if (c1 or c2) return true
 	
 	-- slope right
@@ -464,20 +466,20 @@ function downcheck(p)
 end
 
 function downsloper(p)
-	local c1 = fget(mget2((p.x+4)\8,(p.y+7)\8),1)
+	local c1 = fget(mget2((p.x)\8,(p.y-1+p.h\2)\8),1)
 	if c1 then
-		local xc = (p.x+4)%8
-		local yc = (p.y+7)%8
-		return (7-yc) < xc
+		local xc = (p.x)%8
+		local yc = (p.y-1+p.h\2)%8
+		return (8-yc) < xc
 	end
 	return false
 end
 
 function downslopel(p)
-	local c1 = fget(mget2((p.x+4)\8,(p.y+7)\8),3)
+	local c1 = fget(mget2((p.x)\8,(p.y-1+p.h\2)\8),3)
 	if c1 then
-		local xc = (p.x+4)%8
-		local yc = (p.y+7)%8
+		local xc = (p.x)%8
+		local yc = (p.y-1+p.h\2)%8
 		return yc > xc
 	end
 	return false
@@ -485,19 +487,19 @@ end
 
 
 function downonly(p)
-	local c1 = fget(mget2((p.x+4)\8,(p.y+7)\8),2)
+	local c1 = fget(mget2((p.x)\8,(p.y-1+p.h\2)\8),2)
 	return c1
 end
 
 function rcheck(p)
-	local c1 = fget(mget2((p.x+8)\8,(p.y+3)\8),0)
-	local c2 = fget(mget2((p.x+8)\8,(p.y-3)\8),0)
+	local c1 = fget(mget2((p.x+p.w\4)\8,(p.y+3)\8),0)
+	local c2 = fget(mget2((p.x+p.w\4)\8,(p.y-3)\8),0)
 	return c1 or c2
 end
 
 function lcheck(p)
-	local c1 = fget(mget2((p.x-1)\8,(p.y+3)\8),0)
-	local c2 = fget(mget2((p.x-1)\8,(p.y-3)\8),0)
+	local c1 = fget(mget2((p.x-p.w\4)\8,(p.y+3)\8),0)
+	local c2 = fget(mget2((p.x-p.w\4)\8,(p.y-3)\8),0)
 	return c1 or c2
 end
 
@@ -516,8 +518,8 @@ end
 function collide_p1(p,a,rx,ry)
 	local rx = rx or 16
 	local ry = ry or 24
-	local px = p.x-4
-	local py = p.y-16
+	local px = p.x
+	local py = p.y
 	return abs(px-a.x)<rx and abs(py-a.y)<ry
 end
 
@@ -525,7 +527,9 @@ function make_hammer(dx,x,y)
 	local h = {}
 	h.dx = dx*2
 	h.x = x
-	h.y = y-10
+	h.y = y-6
+	h.w = 16
+	h.h = 16
 	add(hammers,h)
 end
 
@@ -541,7 +545,7 @@ function update_hammers()
 			end
 		end
 		
-		if mget2((h.x+8)\8,(h.y+8)\8) > 0 or
+		if mget2((h.x)\8,(h.y)\8) > 0 or
 		abs(h.x-p1.x)>100 then
 			del(hammers,h)
 		end
@@ -801,6 +805,8 @@ function make_bad(ix,x,y)
 
 	b.x = x
 	b.y = y
+	b.w = 16
+	b.h = 16
 	return b 
 end
 
@@ -815,6 +821,7 @@ function return_bads(lvl)
 			end
 			x *= 8
 			y *= 8
+			y += 8
 			add(bads,make_bad(snail,x,y))
 		end
 	end
