@@ -660,11 +660,12 @@ function return_level()
 	end
 	for r=0,rooms-1,1 do
 		xstart = r*16
+		xfetch = (r%2)*16
 		ystart = 0
 		for xx = xstart,xstart+15,1 do
 			for yy = ystart,ystart+7,1 do
 				poke(0x5f56,0x20)
-				val = mget2(xx%16,yy)
+				val = mget2(xx%16+xfetch,yy)
 				poke(0x5f56,0x80)
 				mset2(xx,yy+8,val)
 			end		
