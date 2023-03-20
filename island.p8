@@ -781,6 +781,15 @@ function update_snail(b)
 end
 
 function update_bird(b)
+	b.ix = bird + 2*(flr(t()*15)%2)
+	if (b.dx==0) b.dx = -0.5
+	b.timer += 1
+	if b.timer >= 120 then
+		b.timer = 0
+		b.dx *= -1
+	end
+	b.faceleft = b.dx < 0
+	b.x += b.dx
 end
 
 function make_bad(ix,x,y)
@@ -799,6 +808,7 @@ function make_bad(ix,x,y)
 	b.h = 16
 	b.dx = 0
 	b.dy = 0
+	b.timer = 0
 	return b 
 end
 
@@ -807,6 +817,11 @@ function return_bads(lvl)
 	local bads={}
 	local r
 	for r=0,lvl.rooms-1,1 do
+		if rnd() < .5 then
+			x = 15*8 + r*16*8
+			y = 46
+			add(bads,make_bad(bird,x,y))
+		end
 		local chance = 0.9
 		while true do
 			if rnd() < chance then
