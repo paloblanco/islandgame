@@ -805,16 +805,26 @@ end
 function return_bads(lvl)
 	local x,y
 	local bads={}
-	for x=lvl.x0,lvl.x1-1,1 do
-		if rnd() < .04 then
-			y = 14
-			while mget2(x,y+1)>0 do
-				y -= 1
+	local r
+	for r=0,lvl.rooms-1,1 do
+		local chance = 0.9
+		while true do
+			if rnd() < chance then
+				x = flr(rnd(16)) + r*16
+				y = 1
+				while mget2(x,y) == 0 do
+					y += 1
+				end
+				x*=8
+				y*=8
+				x+=8
+				y-=8
+				add(bads,make_bad(snail,x,y))
+				chance *= .5
+			else
+				chance = 0.9
+				break
 			end
-			x *= 8
-			y *= 8
-			y += 8
-			add(bads,make_bad(snail,x,y))
 		end
 	end
 	return bads
