@@ -61,6 +61,7 @@ function update_gameplay()
 	update_p1(p1,lvl)
 	for b in all(bads) do
 		if (abs(b.x-p1.x) < 120) b:update()
+		if (b.y > 128) kill_bad(b)
 	end
 	update_hammers()
 	energy -= denergy
@@ -780,6 +781,22 @@ function update_snail(b)
 	b.x += b.dx
 end
 
+function update_rock(b)
+	b.dy += .05
+	b.dx = -0.75
+	b.y += b.dy
+	b.x += b.dx
+	local floor = false
+	while downcheck(b) do
+		b.y -= 1
+		b.y = flr(b.y)
+		b.dy = 0
+		floor = true
+	end
+	if (floor) b.dy = -1
+end
+
+
 function update_bird(b)
 	b.ix = bird + 2*(flr(t()*15)%2)
 	if (b.dx==0) b.dx = -0.5
@@ -842,6 +859,7 @@ function make_bad(ix,x,y)
 	b.damage = bad_kinds[ix][3]
 	b.points = bad_kinds[ix][4]
 	b.update = bad_kinds[ix][5]
+	b.shield = bad_kinds[ix][6] or false
 	b.faceleft=false
 	b.x = x
 	b.y = y
@@ -867,6 +885,11 @@ function return_bads(lvl)
 			x = 15*8 + r*16*8
 			y = 24
 			add(bads,make_bad(bat,x,y))
+		end
+		if rnd() < .25 then
+			x = 15*8 + r*16*8
+			y = 64
+			add(bads,make_bad(rock,x,y))
 		end
 		local chance = 0.9
 		while true do
@@ -894,7 +917,7 @@ function return_bads(lvl)
 end
 
 function hurt_bad(h,dmg)
-	if (h.ix == shell) return
+	if (h.shield) return
 	local dmg = dmg or 1
 	h.health += -dmg
 	if h.health <= 0 then
@@ -908,10 +931,12 @@ bad_kinds[39]={"snail",1,20,100,update_snail}
 snail = 39
 bad_kinds[43]={"bird",1,20,100,update_bird}
 bird = 43
-bad_kinds[75]={"shell",1,20,100,update_empty}
+bad_kinds[75]={"shell",1,20,100,update_empty,true}
 shell = 75
 bad_kinds[71]={"bat",1,20,100,update_bat}
 bat = 71
+bad_kinds[13]={"rock",1,20,100,update_rock,true}
+rock = 13
 
 __gfx__
 77000000dddddddddddddddddddd00000000dddd0000000000000000ddd0ddddddddddddddddddddddddddddddddddddddddddddddddd00ddd0ddddd00000000
@@ -946,22 +971,22 @@ __gfx__
 00000000dffffffdddddd33dd33dd33dd33ddddd3bb333333bb33333dddd00000eee0ddd3bb333303bb33333ddddddd00d0a0ddddd00ddd0a0d0dddd00000000
 00000000d444444dddddddddddddddddddddddddbbbbb33bbbbbb33bddd0eeeeeeeee0ddbbbbb3303bbbb33bddddddd0a0d0dddddddddddd0ddddddd00000000
 00000000ddfddfddddddddddddddddddddddddddbbbbbbbbbbbbbbbbdd0000000000000dbbbbbbb03bbbbbbbdddddddd0ddddddddddddddddddddddd00000000
-00000000dddddddddddddddddddddddddddddddd0000000000000000dddddddddddddddddddddddddddddddddddddddddd0ddddd000000000000000000000000
-00000000dddddddddddddddddddddddddddddddd3333333333343334ddddd0dddd0dddddddddd000000dddddddddddddd0f0dddd000000000000000000000000
-00000000ddddddddddddddddddddddddddddddddb3b3b3b343344334d0dd020dd020dd0dddd0099999900dddddddddd00ff0dddd000000000000000000000000
-00000000dddddddddddddddddddddddddddddddd3b3b3b3b44444444020d020dd020d020dd099999959990ddddddd00fffff0ddd000000000000000000000000
-00000000ddddddddddddddddddddddddddddddddbbbbbbbb444444440220222002220220dd099999555990dddddd0ffff0000ddd000000000000000000000000
-00000000dddddddddddddddddddddddddddddddd3bbb3bbbd44dd44d0222000220002220d09995999599990ddddd0f000ffff0dd000000000000000000000000
-00000000ddddddddddddddddddddddddddddddddb3bbb3bbdddddddd0220444004440220d09999999999990ddddd00ffffff0ddd000000000000000000000000
-00000000ddddddddddddddddddddddddddddddddbbbbbbbbdddddddd0220404004040220d09999999959990dddd0fffff000f0dd000000000000000000000000
-00000000ddddddddddddddddddddddddddddddddbbbbbbbbbbbbbbb3d02044400444020dd09999599999990dddd0ff000fffff0d000000000000000000000000
-00000000ddddddddddddddddddddddddddddddddb3bbb3bbb3bbb3bbd02200022000220dd09599999999590dddd000ffffff00dd000000000000000000000000
-00000000ddddddddddddddddddddddddddddddddbb3bbb3bbb3bbb3bd02222222222220dd09999999999990ddd0ffffff000ff0d000000000000000000000000
-00000000ddddddddddddddddddddddddddddddddbbbbbbbbbbbbbbbbdd022000000220dddd099999999990dddd0fff000fffff0d000000000000000000000000
-00000000ddddddddddddddddddddddddddddddddbbbbbbbbbbbbbbbbddd0220220220ddddd099959959990dddd0000fffff0000d000000000000000000000000
-00000000dddddddddddddddddddddddddddddddd3bbb3bbb3bbb3bbbdddd02222220ddddddd0099999900dddd0fffffff0055550000000000000000000000000
-00000000ddddddddddddddddddddddddddddddddb3bbb3bbb3bbb3bbddddd000000dddddddddd000000dddddd0ffffff05555550000000000000000000000000
-00000000ddddddddddddddddddddddddddddddddbbbbbbbbbbbbbbbbdddddddddddddddddddddddddddddddddd0000000000000d000000000000000000000000
+00000000dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd0ddddd000000000000000000000000
+00000000ddddddddddddddddddddddddddddddddddddddddddddddddddddd0dddd0dddddddddd000000dddddddddddddd0f0dddd000000000000000000000000
+00000000ddddddddddddddddddddddddddddddddddddddddddddddddd0dd020dd020dd0dddd0099999900dddddddddd00ff0dddd000000000000000000000000
+00000000dddddddddddddddddddddddddddddddddddddddddddddddd020d020dd020d020dd099999959990ddddddd00fffff0ddd000000000000000000000000
+00000000dddddddddddddddddddddddddddddddddddddddddddddddd0220222002220220dd099999555990dddddd0ffff0000ddd000000000000000000000000
+00000000dddddddddddddddddddddddddddddddddddddddddddddddd0222000220002220d09995999599990ddddd0f000ffff0dd000000000000000000000000
+00000000dddddddddddddddddddddddddddddddddddddddddddddddd0220444004440220d09999999999990ddddd00ffffff0ddd000000000000000000000000
+00000000dddddddddddddddddddddddddddddddddddddddddddddddd0220404004040220d09999999959990dddd0fffff000f0dd000000000000000000000000
+00000000ddddddddddddddddddddddddddddddddddddddddddddddddd02044400444020dd09999599999990dddd0ff000fffff0d000000000000000000000000
+00000000ddddddddddddddddddddddddddddddddddddddddddddddddd02200022000220dd09599999999590dddd000ffffff00dd000000000000000000000000
+00000000ddddddddddddddddddddddddddddddddddddddddddddddddd02222222222220dd09999999999990ddd0ffffff000ff0d000000000000000000000000
+00000000dddddddddddddddddddddddddddddddddddddddddddddddddd022000000220dddd099999999990dddd0fff000fffff0d000000000000000000000000
+00000000ddddddddddddddddddddddddddddddddddddddddddddddddddd0220220220ddddd099959959990dddd0000fffff0000d000000000000000000000000
+00000000dddddddddddddddddddddddddddddddddddddddddddddddddddd02222220ddddddd0099999900dddd0fffffff0055550000000000000000000000000
+00000000ddddddddddddddddddddddddddddddddddddddddddddddddddddd000000dddddddddd000000dddddd0ffffff05555550000000000000000000000000
+00000000dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd0000000000000d000000000000000000000000
 00000000ddddddddddddddddddddddddddddddddddddddd00dddddddddddd0dddd0ddddd00000000000000000000000000000000000000000000000000000000
 00000000dddddddddddddddddddddddddddddddddddddd0330dddddddddd020dd020dddd33333330333333330000000000000000000000000000000000000000
 00000000ddddddddddddddddddddddddddddddddddddd03bb30ddddddddd020dd020ddddb3b3b3b033b3b3b30000000000000000000000000000000000000000
