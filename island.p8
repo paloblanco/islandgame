@@ -808,6 +808,27 @@ function update_snail(b)
 end
 
 function update_frog(b)
+	b.dy += .075
+	b.y += b.dy
+	local floor = false
+	while downcheck(b) do
+		b.y -= 1
+		b.y = flr(b.y)
+		b.dy = 0
+		floor = true
+		b.ix = frog
+		b.dx=0
+	end
+	if b.timer <= 0 then
+		b.ix += 32
+		b.dy = -2
+		b.timer = 120
+		b.faceleft = b.x > p1.x
+		b.dx = 0.5
+		if (b.faceleft) b.dx = -0.5
+	end
+	b.x += b.dx
+	b.timer += -1
 end
 
 function update_spitter(b)
@@ -957,7 +978,9 @@ function return_bads(lvl)
 		if rnd() < .20 then
 			x = 15*8 + r*16*8
 			y = 64
-			add(bads,make_bad(spitter,x,y))
+			local en = spitter
+			if (rnd()<0.5) en=frog
+			add(bads,make_bad(en,x,y))
 		end
 		local chance = 0.9
 		while true do
