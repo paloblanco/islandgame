@@ -112,7 +112,7 @@ function check_fruits()
 			else
 				score += f.points
 				energy += f.health
-				energy = max(energy,100)
+				energy = min(energy,100)
 				del(fruits,f)
 			end
 		end
@@ -122,7 +122,7 @@ end
 function check_bads()
 	for b in all(bads) do
 		if collide_p1(p1,b,8,16) then
-			energy += b.damage
+			energy -= b.damage
 			if energy <= 0 then
 				--die()
 				zz=1+1
@@ -726,7 +726,7 @@ fruit_kinds = {}
 fruit_kinds[9]={"apple",10,20}
 fruit_kinds[7]={"flag",0,1000}
 fruit_kinds[11]={"hammer",0,2000} 
-fix = {9,73,105,65,97,128,130,132,134}
+fix = {9,73,105,97,128,130,132,134}
 lenfix = #fix
 
 function make_fruit(ix,x,y)
