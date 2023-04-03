@@ -875,7 +875,19 @@ function make_ball(b)
 end
 
 function update_cat(b)
-	
+	b.faceleft = true
+	b.ix = cat + 32*(flr(t()*15)%2)
+	b.dy += .05
+	b.y += b.dy
+	local floor = false
+	while downcheck(b) do
+		b.y -= 1
+		b.y = flr(b.y)
+		b.dy = 0
+		floor = true
+		b.dx = 1.2
+		if (b.faceleft) b.dx = -1.2
+	end
 end
 
 function update_rock(b)
@@ -987,6 +999,11 @@ function return_bads(lvl)
 			x = 15*8 + r*16*8
 			y = 64
 			add(bads,make_bad(rock,x,y))
+		end
+		if rnd() < .20 then
+			x = 15*8 + r*16*8
+			y = 64
+			add(bads,make_bad(cat,x,y))
 		end
 		if rnd() < .20 then
 			x = 15*8 + r*16*8
