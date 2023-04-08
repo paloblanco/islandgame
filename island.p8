@@ -46,9 +46,9 @@ function init_level()
 	local lvl = return_level()
 	local	cam = return_cam()
 	local fruits = return_fruits(lvl)
-	local bads = return_bads(lvl)
+	local bads,spawners = return_bads(lvl)
 	reset_globals()
-	return p1,lvl,cam,fruits,bads
+	return p1,lvl,cam,fruits,bads,spawners
 end
 
 function reset_globals()
@@ -236,10 +236,10 @@ end
 
 function start_gameplay()
 	fade_out()
-	p1,lvl,cam,fruits,bads = init_level()
+	p1,lvl,cam,fruits,bads,spawners = init_level()
 	hammers = {}
 	balls = {}
-	spawners = {}
+	--spawners = {}
 	_update60 = update_gameplay
 	_draw = draw_gameplay
 	_update60() -- call once so graphics work
@@ -875,7 +875,6 @@ function make_ball(b)
 end
 
 function update_cat(b)
-	b.faceleft = true
 	b.ix = cat + 32*(flr(t()*15)%2)
 	b.dy += .05
 	b.y += b.dy
@@ -888,6 +887,7 @@ function update_cat(b)
 		b.dx = 1.2
 		if (b.faceleft) b.dx = -1.2
 	end
+	b.x += b.dx
 end
 
 function update_rock(b)
@@ -983,6 +983,7 @@ end
 function return_bads(lvl)
 	local x,y
 	local bads={}
+	local spawners = {}
 	local r
 	for r=0,lvl.rooms-1,1 do
 		if rnd() < .20 then
@@ -1002,8 +1003,11 @@ function return_bads(lvl)
 		end
 		if rnd() < .20 then
 			x = 15*8 + r*16*8
-			y = 64
-			add(bads,make_bad(cat,x,y))
+			y = 108
+			while mget2(x\8,y\8) > 0 do
+				y -= 8
+			end
+			add(spawners,make_spawner(spawner_cat,x,y,s_cat_update))
 		end
 		if rnd() < .20 then
 			x = 15*8 + r*16*8
@@ -1034,7 +1038,7 @@ function return_bads(lvl)
 			end
 		end
 	end
-	return bads
+	return bads, spawners
 end
 
 function hurt_bad(h,dmg)
@@ -1077,9 +1081,17 @@ function make_spawner(ix,x,y,func)
 	return s
 end
 
-function s_cat()
-	
+function s_cat_update(s)
+	if s.x - p1.x < -40 then
+		local c = make_bad(cat,s.x,s.y-3)
+		c.dy = -1
+		c.faceleft = false
+		add(bads, c)
+		del(spawners, s)
+	end		
 end
+
+spawner_cat = 65
 __gfx__
 77000000dddddddddddddddddddd00000000dddd0000000000000000ddd0ddddddddddddddddddddddddddddddddddddddddddddddddd00ddd0ddddd00000000
 00000000dddd00000000dddddd00444444440ddd33333333bbb3bbb3dd070ddddddd0dddddddddddd0dddddddddddddd00ddddddddd0055000500ddd00000000
