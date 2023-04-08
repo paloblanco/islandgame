@@ -61,7 +61,7 @@ function update_gameplay()
 	update_p1(p1,lvl)
 	for b in all(bads) do
 		if (abs(b.x-p1.x) < 120) b:update()
-		if (b.y > 128) kill_bad(b)
+		if (b.y > 138) kill_bad(b)
 	end
 	for s in all(spawners) do
 		if (abs(s.x-p1.x) < 120) s:update()
@@ -192,7 +192,7 @@ function draw_gameplay()
 		spr(f.ix,f.x-f.w\2,f.y-f.h\2,2,2)
 	end
 	for s in all(spawners) do
-		spr(s.ix,s.x-8,s.y-8,2,2)
+		if (s.visible) spr(s.ix,s.x-8,s.y-8,2,2)
 	end
 	for b in all(bads) do
 		spr(b.ix,b.x-b.w\2,b.y-b.h\2,2,2,b.faceleft)
@@ -925,6 +925,13 @@ function update_bird(b)
 	b.x += b.dx
 end
 
+function update_bulbird(b)
+	b.ix = bulbird + 2*(flr(t()*15)%2)
+	b.dx = -1
+	b.faceleft = true
+	b.x += b.dx
+end
+
 function update_bat(b)
 	local bix2 = 103
 	b.ix = bat + 32*(flr(t()*15)%2)
@@ -992,6 +999,7 @@ function return_bads(lvl)
 	local bads={}
 	local spawners = {}
 	local r
+	add(spawners,make_spawner(spawner_bulbird,10,20,s_bulbird_update))
 	for r=0,lvl.rooms-1,1 do
 		if rnd() < .20 then
 			x = 15*8 + r*16*8
@@ -1068,6 +1076,8 @@ bad_kinds[39]={"snail",1,20,100,update_snail}
 snail = 39
 bad_kinds[43]={"bird",1,20,100,update_bird}
 bird = 43
+bad_kinds[160]={"bulbird",1,20,100,update_bulbird}
+bulbird = 160
 bad_kinds[75]={"shell",1,20,100,update_empty,true}
 shell = 75
 bad_kinds[107]={"spike",1,20,100,update_spike,true}
@@ -1091,11 +1101,13 @@ function make_spawner(ix,x,y,func)
 	s.ix = ix
 	s.x = x
 	s.y = y
+	s.visible = false
 	s.update = func or function() end
 	return s
 end
 
 function s_cat_update(s)
+	s.visible = true
 	if s.x - p1.x < -40 then
 		local c = make_bad(cat,s.x,s.y-3)
 		c.dy = -1
@@ -1105,7 +1117,18 @@ function s_cat_update(s)
 	end		
 end
 
+function s_bulbird_update(s)
+	s.x = p1.x
+	s.y = p1.y
+	if flr(t()*60)%90==1 then
+		local y = 20 + rnd(80)
+		local b = make_bad(bulbird,s.x+100,y)
+		add(bads,b)
+	end
+end
+
 spawner_cat = 65
+spawner_bulbird = 0
 __gfx__
 77000000dddddddddddddddddddd00000000dddd0000000000000000ddd0ddddddddddddddddddddddddddddddddddddddddddddddddd00ddd0ddddd00000000
 00000000dddd00000000dddddd00444444440ddd33333333bbb3bbb3dd070ddddddd0dddddddddddd0dddddddddddddd00ddddddddd0055000500ddd00000000
