@@ -791,6 +791,13 @@ end
 -->8
 -- bads
 
+function update_spike(b)
+	local d = abs(b.x-p1.x)
+	if (d < 24)	b.timer += 1
+	if (b.timer > 0)	b.dy += .04
+	b.y += b.dy
+end
+
 function update_snail(b)
 	b.dy += .05
 	b.y += b.dy
@@ -1016,6 +1023,11 @@ function return_bads(lvl)
 			if (rnd()<0.5) en=frog
 			add(bads,make_bad(en,x,y))
 		end
+		if rnd() < .20 then
+			x = 15*8 + r*16*8
+			y = 8+12
+			add(bads,make_bad(spike,x,y))
+		end
 		local chance = 0.9
 		while true do
 			if rnd() < chance then
@@ -1058,6 +1070,8 @@ bad_kinds[43]={"bird",1,20,100,update_bird}
 bird = 43
 bad_kinds[75]={"shell",1,20,100,update_empty,true}
 shell = 75
+bad_kinds[107]={"spike",1,20,100,update_spike,true}
+spike = 107
 bad_kinds[71]={"bat",1,20,100,update_bat}
 bat = 71
 bad_kinds[13]={"rock",1,20,100,update_rock,true}
