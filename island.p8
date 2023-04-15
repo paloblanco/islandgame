@@ -791,6 +791,18 @@ end
 -->8
 -- bads
 
+function update_fish(b)
+	b.ix = fish + 2*(flr(t()*10)%2)
+	if b.timer==0 then
+		b.dy = -2.5
+	end
+	b.timer += 1
+	b.dy += .03
+	b.y += b.dy
+	b.faceleft=true
+	if (b.x<p1.x) b.faceleft = false
+end
+
 function update_spike(b)
 	local d = abs(b.x-p1.x)
 	if (d < 24)	b.timer += 1
@@ -1000,6 +1012,7 @@ function return_bads(lvl)
 	local spawners = {}
 	local r
 	add(spawners,make_spawner(spawner_bulbird,10,20,s_bulbird_update))
+	add(spawners,make_spawner(spawner_fish,10,20,s_fish_update))
 	for r=0,lvl.rooms-1,1 do
 		if rnd() < .20 then
 			x = 15*8 + r*16*8
@@ -1092,6 +1105,8 @@ bad_kinds[77]={"spitter",1,20,100,update_spitter}
 spitter = 77
 bad_kinds[67]={"cat",1,20,100,update_cat}
 cat = 67
+bad_kinds[164]={"fish",1,20,100,update_fish}
+fish = 164
 
 -->8
 -- spawners
@@ -1127,8 +1142,20 @@ function s_bulbird_update(s)
 	end
 end
 
+function s_fish_update(s)
+	s.x = p1.x
+	s.y = p1.y
+	if flr(t()*60)%90==1 then
+		local y = 128
+		local x = s.x - 40 + 130*rnd()
+		local b = make_bad(fish,x,y)
+		add(bads,b)
+	end
+end
+
 spawner_cat = 65
 spawner_bulbird = 0
+spawner_fish = 0
 __gfx__
 77000000dddddddddddddddddddd00000000dddd0000000000000000ddd0ddddddddddddddddddddddddddddddddddddddddddddddddd00ddd0ddddd00000000
 00000000dddd00000000dddddd00444444440ddd33333333bbb3bbb3dd070ddddddd0dddddddddddd0dddddddddddddd00ddddddddd0055000500ddd00000000
