@@ -794,11 +794,14 @@ end
 function update_fish(b)
 	b.ix = fish + 2*(flr(t()*10)%2)
 	if b.timer==0 then
-		b.dy = -2.5
+		b.dy = -2.6
+		b.dx = p1.dx/2
+		b.dx += (p1.x-b.x)/200
 	end
 	b.timer += 1
 	b.dy += .03
 	b.y += b.dy
+	b.x += b.dx
 	b.faceleft=true
 	if (b.x<p1.x) b.faceleft = false
 end
