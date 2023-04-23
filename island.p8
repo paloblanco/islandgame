@@ -43,7 +43,7 @@ end
 
 function init_level()
 	local p1 = return_p1()
-	local lvl = return_level()
+	local lvl = return_level(level_ix)
 	local	cam = return_cam()
 	local fruits = return_fruits(lvl)
 	local bads,spawners = return_bads(lvl)
@@ -180,7 +180,7 @@ function level_end()
 end
 
 function draw_gameplay()
-	cls(12)
+	draw_bg()
 	palt(0,false)
 	palt(13,true)
 	update_cam(p1,lvl,cam)
@@ -316,6 +316,14 @@ end
 
 function draw_map()
 	cls(12)
+	circfill(64,64,50,3)
+	local pos = level_ix-1
+	local xp = 64+40*cos(.25-pos/8)
+	local yp = 64+40*sin(.25-pos/8)
+	palt(0,false)
+	palt(13,true)
+	spr(49,xp-4,yp-4)
+	palt()
 	print(level_ix,1,1,0)
 end
 
@@ -628,10 +636,25 @@ function map2()
 end
 
 
-function return_level()
+function return_level(nn)
+	n = nn or 1
+	if (n > #level_funcs) n = 1
 	poke(0x5f56,0x80) -- keep width as 128
-	local rom0 = 0x2000
-	local ram0 = 0x8000
+	rom0 = 0x2000
+	ram0 = 0x8000
+	--clear mem, must be a better way
+	for i=0,16*32-1,1 do -- 16*32 is map2 width
+		for j=0,15,1 do
+			mset2(i,j,0)
+		end
+	end
+	level_builder = level_funcs[n]
+	return level_builder(n)
+end
+
+level_funcs = {}
+
+function build_test()
 	local rooms = 32
 	local level = {}
 	level.x0 = 0
@@ -639,12 +662,7 @@ function return_level()
 	level.x1 = rooms*16
 	level.y1 = 16
 	level.rooms = rooms
-	--clear mem, must be a better way
-	for i=level.x0,level.x1-1,1 do
-		for j=0,15,1 do
-			mset2(i,j,0)
-		end
-	end
+	
 	for r=0,rooms-1,1 do
 		xstart = r*16
 		xfetch = (r%5)*16
@@ -660,6 +678,54 @@ function return_level()
 	end
 	return level
 end
+add(level_funcs,build_test)
+
+function build_greens(n)
+	local rooms = 16 + n
+	local level = {}
+	level.x0 = 0
+	level.y0 = 0
+	level.x1 = rooms*16
+	level.y1 = 16
+	level.rooms = rooms
+	room_list = {}
+	-- should start flat
+	add(room_list,0) -- second number is map id
+	room_candidates = {
+		{0,3}, --room_id, likelihood
+		{1,1},
+		{2,1},
+		{3,1},
+	}
+	room_pool = {}
+	for each in all(room_candidates) do
+		id = each[1]
+		c = each[2]
+		for ii=1,c,1 do
+			add(room_pool,id)
+		end
+	end
+	while #room_list < rooms do
+		nextid = room_pool[flr(rnd(#room_pool)) + 1]
+		add(room_list,nextid)
+	end
+	for r=0,rooms-1,1 do
+		xstart = r*16
+		xfetch = room_list[r+1]*16
+		ystart = 0
+		yfetch = 0 -- correct later
+		for xx = xstart,xstart+15,1 do
+			for yy = ystart,ystart+7,1 do
+				poke(0x5f56,0x20)
+				val = mget2(xx%16+xfetch,yy+yfetch)
+				poke(0x5f56,0x80)
+				mset2(xx,yy+8,val)
+			end		
+		end	
+	end
+	return level
+end
+add(level_funcs,build_greens)
 -->8
 -- camera
 
@@ -1159,6 +1225,32 @@ end
 spawner_cat = 65
 spawner_bulbird = 0
 spawner_fish = 0
+-->8
+-- backgrounds
+function draw_bg()
+ cls(12)
+end
+
+bg_funcs = {}
+
+function draw_bg_beach()
+	cls(12)
+end
+
+add(bg_funcs,draw_bg_beach)
+
+function draw_bg_cave()
+	cls(2)
+end
+
+add(bg_funcs,draw_bg_cave)
+
+function bg_switch(n)
+	b = n or 1
+	if (b > #bg_funcs) b = 1
+	draw_bg = bg_funcs[b]
+end
+
 __gfx__
 77000000dddddddddddddddddddd00000000dddd0000000000000000ddd0ddddddddddddddddddddddddddddddddddddddddddddddddd00ddd0ddddd00000000
 00000000dddd00000000dddddd00444444440ddd33333333bbb3bbb3dd070ddddddd0dddddddddddd0dddddddddddddd00ddddddddd0055000500ddd00000000
