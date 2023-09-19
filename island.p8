@@ -43,10 +43,13 @@ end
 
 function init_level()
 	p1 = return_p1()
-	lvl = return_level(level_ix)
-	make_cam() -- makes cam global
-	fruits = return_fruits(lvl)
-	bads,spawners = return_bads(lvl)
+	
+	-- following makes lvl, fruits,
+	-- bads, spawners
+	make_level()
+	
+	-- makes cam global
+	make_cam() 
 	reset_globals()
 end
 
@@ -635,8 +638,8 @@ function map2()
 end
 
 
-function return_level(nn)
-	n = nn or 1
+function make_level()
+	n = level_ix or 1
 	if (n > #level_funcs) n = 1
 	poke(0x5f56,0x80) -- keep width as 128
 	rom0 = 0x2000
@@ -648,7 +651,12 @@ function return_level(nn)
 		end
 	end
 	level_builder = level_funcs[n]
-	return level_builder(n)
+	
+	-- global declarations for 
+	-- new level
+	lvl = level_builder(n)
+	fruits = return_fruits(lvl)
+	bads,spawners = return_bads(lvl)
 end
 
 level_funcs = {}
@@ -680,6 +688,17 @@ end
 add(level_funcs,build_test)
 
 function build_greens(n)
+	room_candidates = {
+		{0,3}, --room_id, likelihood
+		{1,1},
+		{2,1},
+		{3,1},
+	}
+	return builder(room_candidates,n)
+end
+add(level_funcs,build_greens)
+
+function builder(candidates,n)
 	local rooms = 16 + n
 	local level = {}
 	level.x0 = 0
@@ -690,12 +709,7 @@ function build_greens(n)
 	room_list = {}
 	-- should start flat
 	add(room_list,0) -- second number is map id
-	room_candidates = {
-		{0,3}, --room_id, likelihood
-		{1,1},
-		{2,1},
-		{3,1},
-	}
+	room_candidates=candidates
 	room_pool = {}
 	for each in all(room_candidates) do
 		id = each[1]
@@ -724,7 +738,6 @@ function build_greens(n)
 	end
 	return level
 end
-add(level_funcs,build_greens)
 -->8
 -- camera
 
