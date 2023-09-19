@@ -42,13 +42,12 @@ end
 -- gameplay methods
 
 function init_level()
-	local p1 = return_p1()
-	local lvl = return_level(level_ix)
-	local	cam = return_cam()
-	local fruits = return_fruits(lvl)
-	local bads,spawners = return_bads(lvl)
+	p1 = return_p1()
+	lvl = return_level(level_ix)
+	make_cam() -- makes cam global
+	fruits = return_fruits(lvl)
+	bads,spawners = return_bads(lvl)
 	reset_globals()
-	return p1,lvl,cam,fruits,bads,spawners
 end
 
 function reset_globals()
@@ -236,7 +235,7 @@ end
 
 function start_gameplay()
 	fade_out()
-	p1,lvl,cam,fruits,bads,spawners = init_level()
+	init_level()
 	hammers = {}
 	balls = {}
 	--spawners = {}
@@ -729,14 +728,13 @@ add(level_funcs,build_greens)
 -->8
 -- camera
 
-function return_cam()
-	local cam={}
+function make_cam()
+	cam={}
 	cam.x = 0
 	cam.y = 0
-	return cam
 end
 
-function update_cam(p1,lvl,cam)
+function update_cam(p1,lvl)
 	cam.x = max(lvl.x0*8,p1.x-48)
 	cam.x = min(cam.x,(lvl.x1-16)*8)
 	cam.y = status_height
