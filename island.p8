@@ -12,8 +12,7 @@ poke(0x5f56,0x80)
 
 reqs=[[
 need:
-- some level variation
-- falling into pits
+- hammer system
 
 nice to have:
 - powerups
@@ -109,7 +108,7 @@ function check_fruits()
 				return
 			elseif f.name=="hammer" then
 				score += f.points
-				hammer=true
+				hammer=min(4,hammer+1)
 				del(fruits,f)
 			else
 				score += f.points
@@ -131,7 +130,7 @@ function check_bads()
 			else
 				hurt()
 				--kill_bad(b)
-				hurt_bad(b)
+				hurt_bad(b,1,true)
 			end
 		end
 	end
@@ -144,7 +143,7 @@ function hurt()
 	p1.ground = false
 	p1.dy = -2
 	p1.dx = -4
-	if (p1.left) p1.dx = 4 
+	--if (p1.left) p1.dx = 4 
 end
 
 function die()
@@ -204,7 +203,7 @@ function draw_gameplay()
 		spr(79,b.x-4,b.y-4)
 	end
 	for h in all(hammers) do
-		spr(11,h.x-h.w\2,h.y-h.h\2,2,2)
+		draw_hammer(h)
 	end
 	-- overlay
 	camera()
@@ -273,12 +272,13 @@ function draw_title()
 end
 
 function init_globals()
-	lives = 3
+	lives = 30
 	level_ix = 1
 	status_height = 12
 	score = 0
 	denergy = 5/60
-	hammer = false
+	hammer = 0
+	hammerfire = false
 	reset_globals()
 end
 
@@ -375,6 +375,15 @@ function draw_gamewin()
 	cls(14)
 	cprint("you win!",60,0,9)
 end
+
+function draw_hammer(h)
+	local fliph = tf()%12<6
+	local flipv = (tf()+3)%12<6
+	spr(11,h.x-h.w\2,h.y-h.h\2,2,2,fliph,flipv)
+	if (rnd(4)<1) circ(h.x,h.y,h.w/2-2,7)
+	if (h.fire and tf()%2==0) circfill(h.x,h.y,h.w/2-2,8)
+end
+
 -->8
 -- player
 
@@ -413,11 +422,11 @@ function update_p1(p1,lvl)
 	end
 	
 	-- hammer time
-	if btnp(4) and hammer and #hammers < 2 then
+	if btnp(4) and #hammers < min(hammer,3) then
 		if p1.left then
-			make_hammer(-1,p1.x-4,p1.y-4)
+			make_hammer(-1,p1.x-4,p1.y-4,hammer>3)
 		else
-			make_hammer(1,p1.x-4,p1.y-4)
+			make_hammer(1,p1.x-4,p1.y-4,hammer>3)
 		end
 	end
 		
@@ -585,13 +594,14 @@ function collide_p1(p,a,rx,ry)
 	return abs(px-a.x)<rx and abs(py-a.y)<ry
 end
 
-function make_hammer(dx,x,y)
+function make_hammer(dx,x,y,fire)
 	local h = {}
 	h.dx = dx*2
 	h.x = x
 	h.y = y-6
 	h.w = 16
 	h.h = 16
+	h.fire = fire or false
 	add(hammers,h)
 end
 
@@ -602,8 +612,11 @@ function update_hammers()
 		
 		for b in all(bads) do
 			if collide(h,b,b.r+2) then
-				hurt_bad(b)
+				local d = 1
+				if (h.fire) d=2
+				hurt_bad(b,2,h.fire)
 				del(hammers,h)
+				if (b.health <= 0) score += b.points
 			end
 		end
 		
@@ -678,7 +691,7 @@ function build_greens(n)
 		{bird,.01,3,8},
 		{shell,.01,5,16},
 	}
-	level = builder(room_candidates,n,true) 
+	level = builder(room_candidates,n) 
 	fruits = return_fruits(level)
 	spawners = {}
 	--add(spawners,make_spawner(spawner_bulbird,10,20,s_bulbird_update))
@@ -745,13 +758,14 @@ function build_forest(n)
 		{bird,.01,5,16},
 		{frog,.01,5,16},
 	}
-	level = builder(room_candidates,n) 
+	level = builder(room_candidates,n,true) 
 	fruits = return_fruits(level)
 	spawners = {}
 	--add(spawners,make_spawner(spawner_bulbird,10,20,s_bulbird_update))
 	--add(spawners,make_spawner(spawner_fish,10,20,s_fish_update))
 	make_cat_spawners(0.1)
 	bads = generate_bads(bad_candidates)
+	add(bads,make_fatdaddy(8*level.x1-50,20))
 	draw_bg = draw_bg_forest
 	map_pal = {5,15}
 	return level
@@ -841,13 +855,14 @@ function build_volcano(n)
 		{rock,.02,5,16},
 		{shell,.01,5,16},
 	}
-	level = builder(room_candidates,n) 
+	level = builder(room_candidates,n,true) 
 	fruits = return_fruits(level)
 	spawners = {}
 	add(spawners,make_spawner(spawner_bulbird,10,20,s_bulbird_update))
 	--add(spawners,make_spawner(spawner_fish,10,20,s_fish_update))
 	--make_cat_spawners(0.1)
 	bads = generate_bads(bad_candidates)
+	add(bads,make_fatdaddy(8*level.x1-50,20))
 	draw_bg = draw_bg_volcano
 	map_pal = {10,8}
 	return level
@@ -958,6 +973,10 @@ local function fillp(p, x, y)
     local f, p32 = flr(15 / shl(1,x)) * 0x1111, rotr(p16 + lshr(p16, 16), band(y, 3) * 4 + x)
     return _fillp(p - p16 + flr(band(p32, f) + band(rotl(p32, 4), 0xffff - f)))
 end
+
+function tf()
+	return flr(60*t())%60
+end
 -->8
 -- map
 
@@ -971,6 +990,9 @@ fruit_kinds[9]={"apple",10,20}
 fruit_kinds[7]={"flag",0,1000}
 fruit_kinds[11]={"hammer",0,2000} 
 fix = {9,73,105,97,128,130,132,134}
+for f in all(fix) do
+	fruit_kinds[f] = {"apple",10,20}
+end
 lenfix = #fix
 
 function make_fruit(ix,x,y)
@@ -987,7 +1009,7 @@ function make_fruit(ix,x,y)
 end
 
 
-function return_fruits(lvl)
+function return_fruits0(lvl)
 	local x,y
 	local fruits={}
 	local rooms = lvl.rooms
@@ -1030,6 +1052,48 @@ function return_fruits(lvl)
 	x=96
 	y=64
 	add(fruits,make_fruit(11,x,y))
+	add(fruits,make_fruit(11,x+20,y))
+	add(fruits,make_fruit(11,x+40,y))
+	return fruits
+end
+
+function return_fruits(lvl)
+	local fruits = {}
+	local chance0 = .01
+	local chance = .01
+	for x=8,(lvl.rooms-1)*16,1 do
+		if rnd() < chance then
+			xx = x*8
+			y = 2 + flr(rnd(10))
+			while mget(x,y)>0 do
+				y -= 1
+			end
+			yy = y*8
+			local ix = rnd(fix)
+			add(fruits,make_fruit(ix,xx,yy))
+			chance=chance0
+		else
+			chance += .01
+		end
+	end
+	
+	x=lvl.x1 - 2
+	y=14
+	-- flag
+	while mget2(x,y+1)>0 do
+		y -= 1
+	end
+	y *= 8
+	x *= 8
+	y += 8
+	x += 8
+	add(fruits,make_fruit(7,x,y))
+	--hammer
+	x=96
+	y=64
+	add(fruits,make_fruit(11,x,y))
+	add(fruits,make_fruit(11,x+20,y))
+	add(fruits,make_fruit(11,x+40,y))
 	return fruits
 end
 -->8
@@ -1302,7 +1366,7 @@ function make_fatdaddy(x,y)
 	return b 
 end
 
-
+chanceup = .005
 
 function generate_bads(cands)
 	-- for each in cands, generate.
@@ -1326,7 +1390,7 @@ function generate_bads(cands)
 				add(bads,make_bad(kind,xx,yy))
 				chance=chance0
 			else
-				chance += .01
+				chance += chanceup
 			end
 		end
 	end
@@ -1343,14 +1407,15 @@ function make_cat_spawners(chance0)
 			add(spawners,make_spawner(spawner_cat,xx,yy,s_cat_update))
 			chance=chance0
 		else
-			chance += .01
+			chance += chanceup
 		end
 	end
 end
 
 
-function hurt_bad(h,dmg)
-	if (h.shield) return
+function hurt_bad(h,dmg,shieldbrk)
+	local sb = shieldbrk or false
+	if (h.shield and not sb) return
 	local dmg = dmg or 1
 	h.health += -dmg
 	if h.health <= 0 then
