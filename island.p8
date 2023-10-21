@@ -322,7 +322,7 @@ function fade_out()
 	while r < 100 do
 		circfill(64,64,r,0)
 		flip()
-		r += 3
+		r += 30--3
 	end
 end
 
@@ -333,7 +333,7 @@ function fade_in()
 		_draw()
 		circfill(64,64,r,0)
 		flip()
-		r -= 3
+		r -= 30--3
 	end
 end
 
@@ -813,7 +813,7 @@ function build_caves(n)
 	--add(spawners,make_spawner(spawner_fish,10,20,s_fish_update))
 	bads = generate_bads(bad_candidates)
 	draw_bg = draw_bg_cave
-	map_pal = {2,14}
+	map_pal = {13,14}
 	return level
 end
 add(level_funcs,build_caves)
@@ -1664,6 +1664,20 @@ end
 
 function draw_bg_cave()
 	cls(2)
+	for _xx=20,140,60 do
+		xx = _xx-(cam.x\4)
+		while xx < -30 do
+		 xx += 180
+		end
+		fillp(░-.5)
+		ovalfill(xx-5,-20,xx+30,148,0x21)
+		ovalfill(xx-18,-20,xx+17,148,0x21)
+		fillp(▒-.5)
+		ovalfill(xx-10,-20,xx+25,148,0x21)
+		fillp()
+		ovalfill(xx-15,-20,xx+20,148,1)
+	end
+	--cls(2)
 end
 
 function draw_bg_bridge()
