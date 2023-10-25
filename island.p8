@@ -1681,20 +1681,135 @@ function draw_bg_cave()
 end
 
 function draw_bg_bridge()
-	cls(9)
+	cls(8)
+	local horizon=50
+	clip(0,0,127,55)
+	circfill(64,55,45,9)
+	clip()
+	rectfill(0,horizon,127,127,2)
+	local r2 = 45^2
+	for y=horizon,99,1 do
+		local x = sqrt(r2 - (y-55)^2)
+		local x0 = 64-10*sin(.5*t()+(500/(y-10)))
+		fillp(▥,x0\8)
+		line(x0-x,y,x0+x,y,9)
+	end
+	fillp()
 end
 
 function draw_bg_forest()
 	cls(6)
+	for _xx=20,140,40 do
+		xx = _xx-(cam.x\4)
+		while xx < -30 do
+		 xx += 160
+		end
+		--fillp(▒-.5)
+		--rectfill(xx-3,0,xx+12,127,0x65)
+		fillp(▥-.5,cam.x\4)
+		rectfill(xx-2,0,xx+13,127,0x65)
+		fillp()
+		rectfill(xx+3,0,xx+20,127,0x65)
+	end
+	for _xx=20,170,30 do
+		xx = _xx-(cam.x\2)
+		while xx < -30 do
+		 xx += 180
+		end
+		circfill(xx,-5,20,3)
+		circfill(xx+2,-8,20,15)
+	end
 end
 
 function draw_bg_cliffs()
-	cls(7)
+	cls(14)
+	circfill(64,54,20,15)
+	local yy = 74
+	for xx=0,140,20 do
+		local x = xx-4*t()
+		while x < -20 do
+			x += 160
+		end
+		circfill(x,yy,15,7)
+		circfill(x,yy-60,15,7)
+	end
+		for xx=0,140,20 do
+		local x = xx-4*t()
+		while x < -20 do
+			x += 160
+		end
+		circfill(x+(x-58)\32,yy+1,15,6)
+		circfill(x+(x-58)\32,yy-61,15,6)
+	end
+
+	yy=94
+	for xx=0,160,40 do
+		local x = xx-8*t()
+		while x < -20 do
+			x += 200
+		end
+		circfill(x,yy,25,7)
+		circfill(x,-5,25,7)
+	end
+	for xx=0,160,40 do
+		local x = xx-8*t()
+		while x < -20 do
+			x += 200
+		end
+		circfill(x+(x-58)\32,yy+1,25,6)
+		circfill(x+(x-58)\32,-6,25,6)
+	end	
+	yy=128 
+	for xx=0,180,60 do
+		local x = xx-16*t()
+		while x < -20 do
+			x += 240
+		end
+		circfill(x,yy,35,7)
+	end	
+	for xx=0,180,60 do
+		local x = xx-16*t()
+		while x < -20 do
+			x += 240
+		end
+		circfill(x+(x-58)\32,yy+1,35,6)
+	end
+	
 end
 
 function draw_bg_swamps()
+	-- {1,2,13}
+	local horizon=50
 	cls(13)
+	rectfill(0,horizon,127,127,2)
+	circfill(80,20,10,6)
+	--cls(13)
+	for xx in all({20,80,140}) do
+		local x = xx-cam.x/4
+		while x < -20 do
+			x += 180
+		end
+		rectfill(x,0,x+20,55,1)
+
+		clip(0,55,127,127)
+		local xslope0 = (x-80)/(55-20)
+		local x0 = 107*xslope0+80
+		--line(80,20,x0,127,1)
+		local xslope1 = (x-60)/(55-20)
+		local x1 = 107*xslope1+80
+		--line(80,20,x1,127,1)
+		
+		for yy=55,127,1 do
+		 local delta = 2*sin(.5*t()+(500/(yy-18)))
+			local x0 = (yy-20)*xslope0+80 + delta
+			local x1 = (yy-20)*xslope1+80 + delta
+			line(x0,yy,x1,yy,1)
+		end
+		clip()
+	end
 end
+
+level_funcs = {build_swamps}
 
 function draw_bg_beach()
 	cls(14)
@@ -1702,6 +1817,17 @@ end
 
 function draw_bg_volcano()
 	cls(1)
+end
+
+function testbg(f)
+	cam={x=0,y=0}
+	_update60 = function() 
+	if (btn(0)) cam.x+=-1
+	if (btn(1)) cam.x+=1
+	end
+	_draw = function()
+	f()
+	end
 end
 __gfx__
 77000000dddddddddddddddddddd00000000dddd0000000000000000ddd0ddddddddddddddddddddddddddddddddddddddddddddddddd00ddd0ddddddddddddd
