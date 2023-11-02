@@ -9,6 +9,7 @@
     - fruits
     - bads
     - spawners
+    - map_pal
     - the are declared via init_level()
 
     - a single function should make lvl, fruits, bads, and spawners. this would make it a lot easier to design levels.

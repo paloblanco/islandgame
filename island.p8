@@ -210,8 +210,10 @@ end
 
 function draw_gameplay()
 	draw_bg()
+	
 	palt(0,false)
 	palt(13,true)
+
 	update_cam(p1,lvl,cam)
 	map2()
 	draw_p1(p1)
@@ -1809,14 +1811,57 @@ function draw_bg_swamps()
 	end
 end
 
-level_funcs = {build_swamps}
-
 function draw_bg_beach()
 	cls(14)
+	rectfill(0,0,127,10,13)
+	fillp(░-.5,-cam.x/2)
+	rectfill(0,11,127,19,0xde)
+	fillp(▒-.5,-cam.x/4)
+	rectfill(0,20,127,27,0xde)
+	fillp()
+	-- {9,15}
+	y0 = 32 + 960*(1/(32+10))
+	dy0 = 50*(1/(32+5))*sin(.5*t()+.1*32)
+	rectfill(0,y0+dy0,127,127,13)
+	--line(0,y0+dy0,127,y0+dy0,11)
+	pat = {0.5,…,░,▒,█}
+	fillp(▤)
+	for zz=28,-2,-3 do
+		local y = 32 + 960*(1/(zz+10))
+		local h = sin(.5*t()+.05*zz)
+		local dy = 100*(1/(zz+10))*h
+		local ix = flr(1+(h+1)*.5*4.9)
+		
+		if y+dy > y0+dy0 then
+			local h2 = (y+dy - (y0+dy0))/2
+			local w = (y-y0)*3
+			local xx = 100*(1/(zz+5)*sin(t()/2)) + (-500/(zz+5)) * cam.x/100
+			xx %= w*2
+			xx += -w*2
+			local up = true
+			while xx < 128+w*2 do
+				--clip(xx,y0+dy0,xx+w,y0+dy0)
+				clip(xx,y0+dy0,128,h2+1)
+				oval(xx,y0+dy0,xx+w,y+dy,11)
+				xx += w
+				clip(xx,y0+dy0+h2,128,2*h2)
+				oval(xx,y0+dy0,xx+w,y+dy,11)
+				xx += w
+				--oval(0,y0+dy0,(y-y0)*2,y+dy,11)
+				clip()
+			end
+		end
+		
+		y0,dy0 = y,dy
+	end
+	fillp()
 end
+
+level_funcs = {build_beach}
 
 function draw_bg_volcano()
 	cls(1)
+	-- {10,8}
 end
 
 function testbg(f)
