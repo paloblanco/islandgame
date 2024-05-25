@@ -82,6 +82,8 @@ flag_cands = {
 flag_index=1
 
 function rotate_flag()
+	--flag.x = 120
+	flag.y = 24+10*sin(.5*t())
 	if tf()%20==1 then 
 		flag_index+=1
 		if (flag_index>#flag_cands) flag_index=1
@@ -137,8 +139,17 @@ function check_fruits()
 	for f in all(fruits) do
 		if collide_p1(p1,f,12,16) then
 			if f.name == "flag" then
+				if f.ix==11 then
+				 hammer_up()
+				elseif f.ix==196 then
+					life_up()
+				else
+					sfx(1)
+					freeze(15)
+				end
+				del(fruits,f)
 				level_end()
-				return
+				--return
 			elseif f.name=="hammer" then
 				score += f.points
 				hammer_up()
@@ -176,12 +187,16 @@ function hurt()
 	p1.ground = false
 	p1.dy = -2
 	p1.dx = -4
-	if (hammer == 0) hammerpoints = 0
-	if (hammer > 0) hammer_down()
+	if hammer > 0 then
+	 hammer_down()
+	else
+		hammerpoints = 0
+	end
 end
 
 function die()
 	p1.ud = true
+	p1.sp = 198
 	hammer = 0
 	freeze(15)
 	local dy= -2.5
@@ -201,11 +216,20 @@ function die()
 end
 
 function level_end()
+	freeze(15)
+	energy = flr(energy)
+	while energy > 0 do
+		eloss = 5
+		score += eloss * 10
+		energy -= eloss
+		sfx(1)
+		freeze(9)
+	end
+	freeze(10)
 	sfx(0)
 	level_ix += 1
-	for _=1,30,1 do
-		flip()
-	end
+	freeze(30)
+	energy = 10
 	if level_ix < 9 then
 		start_map()
 	else
@@ -231,6 +255,14 @@ function draw_gameplay()
 	draw_p1(p1)
 	--local flicker = flr(t()*30)%2
 	--pset(p1.x,p1.y,7*flicker)
+	
+	flag_colors = {6,7}
+	for _n=0,3,1 do
+		_c = flag_colors[(_n%2)+1]
+		_r = (_n*5 + 30*t())%20
+		circfill(flag.x,flag.y,_r,_c)
+	end
+	
 	for f in all(fruits) do
 		spr(f.ix,f.x-f.w\2,f.y-f.h\2,2,2)
 	end
@@ -327,7 +359,7 @@ function draw_title()
 end
 
 function init_globals()
-	lives = 30
+	lives = 3
 	level_ix = 1
 	status_height = 12
 	score = 0
@@ -345,7 +377,8 @@ function fade_out()
 	while r < 100 do
 		circfill(64,64,r,0)
 		flip()
-		r += 30--3
+		r += 3
+		if (btn(4) or btn(5)) r+=6
 	end
 end
 
@@ -356,7 +389,8 @@ function fade_in()
 		_draw()
 		circfill(64,64,r,0)
 		flip()
-		r -= 30--3
+		r -= 3
+		if (btn(4) or btn(5)) r-=6
 	end
 end
 
@@ -459,11 +493,18 @@ function hammer_up()
 	freeze(15)
 end
 
+function life_up()
+	make_text("life up!!",p1.x-12,p1.y-20,6,2,40)
+	lives+=1
+	sfx(0)
+	freeze(15)
+end
+
 function hammer_down()
 	make_text("hammer down",p1.x-16,p1.y-20,8,2,40)
 	
 	if hammer == 1 then
-		xx = p1.x+120 + rnd(80)
+		xx = p1.x+160 + rnd(80)
 		yy = 60
 		while mget2(xx\8,yy\8) > 0 do
 			yy -= 8
@@ -497,12 +538,15 @@ function return_p1()
 	p1.canjump=false
 	p1.w = 16
 	p1.h = 24
+	p1.tosstimer=0
+	p1.tossmax=10
 	return p1
 end
 
 function update_p1(p1,lvl)
 	p1.offtime = (p1.offtime+1)%p1.offtime_max
 	if (p1.offtime == p1.offtime_max-1) p1.offset = 1-p1.offset
+	p1.tosstimer = max(p1.tosstimer-1,0)
 	
 	p1.run=false
 	
@@ -516,10 +560,11 @@ function update_p1(p1,lvl)
 	-- hammer time
 	if btnp(4) and #hammers < min(hammer,3) then
 		if p1.left then
-			make_hammer(-1,p1.x-4,p1.y-4,hammer>3)
+			make_hammer(-1,p1.x+4,p1.y-4,hammer>3)
 		else
 			make_hammer(1,p1.x-4,p1.y-4,hammer>3)
 		end
+		p1.tosstimer = p1.tossmax
 	end
 		
 	p1.move=false
@@ -673,6 +718,8 @@ end
 
 
 function draw_p1(p1)
+	if (p1.tosstimer>0) p1.sp=192
+	if (p1.tosstimer>6) p1.sp=198
 	spr(p1.sp,p1.drawx,p1.drawy,2,3,p1.left,p1.ud)
 	if (hammer>0) spr(194+(hammer-1)*16,p1.drawx,p1.drawy-4-p1.offset,2,1,p1.left)
 end
@@ -717,8 +764,10 @@ function update_hammers()
 				hurt_bad(b,2,h.fire)
 				del(hammers,h)
 				if b.health <= 0 then
-				 score += b.points
-				 make_text(b.points,b.x-2,b.y-12,7,6)
+					_p = b.points
+					if (hammer==4) _p*=2
+				 score += _p
+				 make_text(_p,b.x-2,b.y-12,7,6)
 				end
 			end
 		end
@@ -869,7 +918,7 @@ function build_forest(n)
 	spawners = {}
 	--add(spawners,make_spawner(spawner_bulbird,10,20,s_bulbird_update))
 	--add(spawners,make_spawner(spawner_fish,10,20,s_fish_update))
-	make_cat_spawners(0.1)
+	make_cat_spawners(0.03)
 	bads = generate_bads(bad_candidates)
 	add(bads,make_fatdaddy(8*level.x1-50,20))
 	draw_bg = draw_bg_forest
@@ -1099,7 +1148,7 @@ function freeze(n)
 	end
 end
 -->8
--- map
+
 
 
 -->8
@@ -1160,14 +1209,12 @@ function return_fruits(lvl)
 	x *= 8
 	y += 8
 	x += 8
-	flag = make_fruit(7,x,y)
+	flag = make_fruit(7,x,0)
 	add(fruits,flag)
 	--hammer
 	x=96
 	y=64
 	add(fruits,make_fruit(11,x+rnd(100),y))
-	--add(fruits,make_fruit(11,x+20,y))
-	--add(fruits,make_fruit(11,x+40,y))
 	return fruits
 end
 
@@ -1206,13 +1253,22 @@ function update_hammerballs()
 end
 
 function add_hammerball()
-	hammerpoints += 5 - hammer
+	hammerpoints += 5
+	_p = 5 * hammer
+	if (hammer == 4) _p = 100
+	if _p > 0 then
+		score += _p
+		make_text(_p,p1.x,p1.y-12,7,6)
+	end
 	if hammerpoints > 99 then
 		if hammer < 4 then
 			hammer_up()
 			hammerpoints %= 100
 		else
-			hammerpoints = 99
+			score += 3000
+			make_text(3000,p1.x-6,p1.y-12,7,6)
+			hammerpoints = 0
+			sfx(0)
 		end
 	end
 end
@@ -1451,7 +1507,9 @@ function update_fatdaddy(b)
 		b.timer = 180
 	end
 	b.timer += -1
-	if (b.timer == 130) make_ball(b)
+	if b.timer == 130 then
+		make_ball(b)
+	end
 	b.faceleft = p1.x < b.x
 end
 
@@ -1659,10 +1717,10 @@ spawner_bulbird = 0
 spawner_fish = 0
 -->8
 -- backgrounds
+
 function draw_bg()
  cls(12)
 end
-
 
 function draw_bg_greens()
 	-- sky
@@ -1736,7 +1794,6 @@ function draw_bg_cave()
 	set_pal_game()
 end
 
---level_funcs = {build_caves}
 
 function draw_bg_bridge()
 	cls(8)
@@ -2051,30 +2108,30 @@ d0a00eeee0ddddddd0ee0a0dddddddddd0008888880000800888088888800080dddd0040ffff0444
 0a00a0000ddddddddd00d0dddddddddddddd00000880080dd000888888088800dddddd0ffffff0000000000d0fffff0dddddd0ffffffff000000000d0fffff0d
 d0dd0dddddddddddddddddddddddddddddddddddd08880dddddd0000088880ddddddd0ffffffff0ddddddddd0fffff0ddddddd00000000ddddddddddd000000d
 dddddddddddddddddddddddddddddddddddddddddd000dddddddddddd0000ddddddddd00000000ddddddddddd000000ddddddddddddddddddddddddddddddddd
-dddddddddddddddddd00ddddddddddddddddddddddddddddddddddddddddddd7dddddddddddddddd000000000000000000000000000000000000000000000000
-dddd00000000ddddd0ee0ddddddddddddddddddddddddddddddd00000000ddd7ddddd00000dddddd000000000000000000000000000000000000000000000000
-dd00444444440dddd02ee0ddddddddddddd0000000000ddddd00444444440dd7ddd008888800dddd000000000000000000000000000000000000000000000000
-d0444444444440dddd02ee0ddddddddddd0ffffffff4f0ddd0444444444440d7dd08888888880ddd000000000000000000000000000000000000000000000000
-d0444ff444ff440dddd02e0dddddddddd0fff4ffffffff0dd0444ff444ff4407d0888888888880dd000000000000000000000000000000000000000000000000
-0444ff0444f0440dddd02e0ddddddddd0ffffffff4fff4f00444ff0444f04407088888888888880d000000000000000000000000000000000000000000000000
-044fff0f4ff040dddd222222222222dd0f4ffffffffffff0044fff0f4ff040d708888ff0ff808880000000000000000000000000000000000000000000000000
-044fff0ffff0f0ddddddd0ddddddddddd00000000000000d044fff0ffff0f0d70888fff0fff0f880000000000000000000000000000000000000000000000000
-0444fffffffff0dddd00dd00dddddddd04444444444444400444fffffffff0d70888fff0fff0ff80000000000000000000000000000000000000000000000000
-d0444444444440ddd0ee00ee0ddddddd0444444444444440d0444444444440d70888fff0fff0ff80000000000000000000000000000000000000000000000000
-dd0444f00ff40dddd02ee02ee0ddddddd00000000000000ddd0444f00ff40dd70888fffffffff00d000000000000000000000000000000000000000000000000
-ddd044444440dddddd02ee02ee0ddddd0ffffffffffff4f0ddd044444440ddd7d088ffffffff0ddd000000000000000000000000000000000000000000000000
-dddd0ff4400dddddddd02e002e0ddddd0ff4fffffffffff0dddd0ff4400dddd7dd000fffff00dddd000000000000000000000000000000000000000000000000
-dd00fffffff0ddddddd02e002e0dddddd0ffffff4fffff0ddd00fffffff0ddd7ddddd0fff0dddddd000000000000000000000000000000000000000000000000
-d0ffffffffff0ddddd222222222222dddd000000000000ddd0ffffffffff0dd7dddd0feeef0ddddd000000000000000000000000000000000000000000000000
-0fff00ffffff0dddddddd0ddd0dddddddddddddddddddddd0fff00ffffff0dd7ddd00eeeeee00ddd000000000000000000000000000000000000000000000000
-0fffff0fffff00dddd00dd00dd00dddd22000000000000000fffff0fffff00d7dd0ff0eeee0ff0dd000000000000000000000000000000000000000000000000
-0ffff0fff0ff0f0dd0ee00ee00ee0ddd22000011000000000ffff0fff0ff0f07dd0ff0eeee0ff0dd000000000000000000000000000000000000000000000000
-d0000000000000ddd02ee02ee02ee0dd8800002200000000d0000000000000d7ddd0008880d00ddd000000000000000000000000000000000000000000000000
-044444444444440ddd02ee02ee02ee0d88000055000000000444444444444407dddd0eeeee0ddddd000000000000000000000000000000000000000000000000
-040004440000040dddd02e002e002e0d99000088000000000400044400000407dddd0000000ddddd000000000000000000000000000000000000000000000000
-00fff000d0fff0ddddd02e002e002e0d990000990000000000fff000d0fff0d7dddd0f0d0f0ddddd000000000000000000000000000000000000000000000000
-d0ffff0ddd000ddddd2222222222220daa0000aa00000000d0ffff0ddd000dd7ddd0880d0880dddd000000000000000000000000000000000000000000000000
-dd00000dddddddddddddd0ddd0ddd0ddaa00007700000000dd00000dddddddd7dddd000d000ddddd000000000000000000000000000000000000000000000000
+dd0dd00000000ddddd00dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd000000000000000000000000000000000000000000000000
+d0400444444440ddd0ee0dddddddddddddddddddddddddddddddddddddddddddddddd00000dddddd000000000000000000000000000000000000000000000000
+d04444444444440dd02ee0ddddddddddddd0000000000dddddddddddddddddddddd008888800dddd000000000000000000000000000000000000000000000000
+dd044444444fff40dd02ee0ddddddddddd0ffffffff4f0dddddd00000000dddddd08888888880ddd000000000000000000000000000000000000000000000000
+d04444444440ff40ddd02e0dddddddddd0fff4ffffffff0ddd00444444440dddd0888888888880dd000000000000000000000000000000000000000000000000
+d044444444ff0f0dddd02e0ddddddddd0ffffffff4fff4f0d0444444444440dd088888888888880d000000000000000000000000000000000000000000000000
+d044444444ffff0ddd222222222222dd0f4ffffffffffff0d0444ff444ff440d08888ff0ff808880000000000000000000000000000000000000000000000000
+d044444444ffff0dddddd0ddddddddddd00000000000000d0444f0f444f0440d0888fff0fff0f880000000000000000000000000000000000000000000000000
+dd0444444444440ddd00dd00dddddddd0444444444444440044fff0f4f0f40dd0888fff0fff0ff80000000000000000000000000000000000000000000000000
+ddd0444444fff00dd0ee00ee0ddddddd0444444444444440044ffffffffff0dd0888fff0fff0ff80000000000000000000000000000000000000000000000000
+dddd044444440ff0d02ee02ee0ddddddd00000000000000d0444fffffffff0dd0888fffffffff00d000000000000000000000000000000000000000000000000
+ddddd0ff4400fff0dd02ee02ee0ddddd0ffffffffffff4f0d0004444444440ddd088ffffffff0ddd000000000000000000000000000000000000000000000000
+dddd0ff000fffff0ddd02e002e0ddddd0ff4fffffffffff00fff04fffff40ddddd000fffff00dddd000000000000000000000000000000000000000000000000
+ddd0ffffffffff0dddd02e002e0dddddd0ffffff4fffff0d0fff04444440ddddddddd0fff0dddddd000000000000000000000000000000000000000000000000
+dd0fffffffff00dddd222222222222dddd000000000000dd0fff0ff4400ddddddddd0feeef0ddddd000000000000000000000000000000000000000000000000
+d0ffffffff00f0ddddddd0ddd0dddddddddddddddddddddd0ff0fffffff0d0ddddd00eeeeee00ddd000000000000000000000000000000000000000000000000
+d0ffffffffffff0ddd00dd00dd00dddd2200000000000000d0ffffffffff0f0ddd0ff0eeee0ff0dd000000000000000000000000000000000000000000000000
+dd000000000000ddd0ee00ee00ee0ddd2200001100000000d0fffffff0ff0f0ddd0ff0eeee0ff0dd000000000000000000000000000000000000000000000000
+d04444444444440dd02ee02ee02ee0dd8800002200000000d0000000000000ddddd0008880d00ddd000000000000000000000000000000000000000000000000
+d00004440000040ddd02ee02ee02ee0d880000550000000004444440000440dddddd0eeeee0ddddd000000000000000000000000000000000000000000000000
+0ffff000d0fff0ddddd02e002e002e0d99000088000000000400040ffff040dddddd0000000ddddd000000000000000000000000000000000000000000000000
+0fff0dddd0ffff0dddd02e002e002e0d990000990000000000fff00ffff040dddddd0f0d0f0ddddd000000000000000000000000000000000000000000000000
+0ff0dddddd0000dddd2222222222220daa0000aa00000000d0ffff0000000dddddd0880d0880dddd000000000000000000000000000000000000000000000000
+d000ddddddddddddddddd0ddd0ddd0ddaa00007700000000dd00000ddddddddddddd000d000ddddd000000000000000000000000000000000000000000000000
 d444444ddddddddddd00dd00dd00dddd000000000000000077777777777777777777777777777777000000000000000000000000000000000000000000000000
 4f0ff0f4dd2222ddd099009900990ddd00000000000000004f0ff0f4ddd3bbb3bbb3bbb3bbb3dddd000000000000000000000000000000000000000000000000
 4f0ff0f4d288882dd0899089908990dd00000000000000004f0ff0f4ddd33bb33bb33bb33bb3dddd000000000000000000000000000000000000000000000000
